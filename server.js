@@ -14,6 +14,35 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
+// Database Warmup Middleware (Guarantees tables and seed data exist before ANY API route runs on Vercel)
+let initPromise = null;
+function ensureDbInit() {
+  if (!initPromise) {
+    initPromise = db.initDb().catch(err => {
+      console.error('Failed to initialize PostgreSQL database:', err);
+      initPromise = null; // Reset so subsequent requests can retry
+      throw err;
+    });
+  }
+  return initPromise;
+}
+
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    try {
+      await ensureDbInit();
+    } catch (err) {
+      console.error('DB Warmup Error on', req.path, ':', err.message);
+      return res.status(500).json({
+        success: false,
+        status: 'error',
+        message: 'Database initialization error: ' + err.message
+      });
+    }
+  }
+  next();
+});
+
 // Serve static frontend files from current directory
 app.use(express.static(__dirname));
 
@@ -69,12 +98,15 @@ app.get('/api/health', async (req, res) => {
   try {
     const tracksRes = await db.query('SELECT count(*) as count FROM track_categories');
     const usersRes = await db.query('SELECT count(*) as count FROM users');
+    const isMem = db.isInMemory();
     
     res.json({
       status: 'ok',
       brand: 'NextWave',
       engine: 'PostgreSQL',
-      inMemory: db.isInMemory(),
+      mode: isMem ? 'In-Memory (pg-mem)' : 'Remote PostgreSQL (Persistent)',
+      isPersistent: !isMem,
+      hasPostgresUrl: !!(process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL),
       server_time: new Date().toISOString(),
       counts: {
         tracks: parseInt(tracksRes.rows[0].count, 10),
@@ -993,27 +1025,6 @@ app.delete('/api/users/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
-});
-
-// Ensure database is initialized before serving requests (essential for Vercel serverless)
-let initPromise = null;
-function ensureDbInit() {
-  if (!initPromise) {
-    initPromise = db.initDb().catch(err => {
-      console.error('Failed to initialize PostgreSQL database:', err);
-    });
-  }
-  return initPromise;
-}
-
-// Middleware to ensure DB connection is warm
-app.use(async (req, res, next) => {
-  try {
-    await ensureDbInit();
-  } catch (e) {
-    console.warn('DB initialization error:', e);
-  }
-  next();
 });
 
 // Start local server if not running inside Vercel serverless functions
