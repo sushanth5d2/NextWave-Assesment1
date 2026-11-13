@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interviewer Portal — NextWave</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- TOP NAVIGATION -->
+  <nav class="top-nav">
+    <div class="logo" onclick="window.location.href='interviewer.html'">
+      NextWave <span class="tagline">Interviewer Portal</span>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="showInterviewerSection('schedule')">Daily Schedule & Evaluations</button>
+      <button class="nav-link" onclick="showInterviewerSection('availability')">Set Slot Availability</button>
+      <button class="nav-link" onclick="showInterviewerSection('history')">Evaluated Candidates</button>
+    </div>
+    <div class="user-info">
+      <div class="user-details">
+        <div class="user-name" id="interviewerName">Faculty Evaluator</div>
+        <div class="user-role" id="interviewerRole">Domain Lead</div>
+      </div>
+      <div class="user-avatar" id="interviewerAvatar">FE</div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="main">
+
+    <!-- ============ SECTION 1: DAILY SCHEDULE (INTERVIEWER DASHBOARD) ============ -->
+    <div class="section active" id="sec-schedule">
+
+      <!-- METRICS ROW (ONLY ON DASHBOARD) -->
+      <div class="stats-row">
+        <div class="stat-card tapable" onclick="openInterviewerStatModal('candidates')" title="Tap to view candidate queue details">
+          <div class="stat-label">Assigned Candidates</div>
+          <div class="stat-value" id="statTodayTotal">0</div>
+          <div class="stat-sub">Live clearance queue</div>
+          <div class="tap-hint">👆 Tap for details →</div>
+        </div>
+        <div class="stat-card tapable" onclick="openInterviewerStatModal('slots')" title="Tap to manage availability slots">
+          <div class="stat-label">My Open Slots</div>
+          <div class="stat-value" style="color:var(--primary);" id="statOpenSlots">0</div>
+          <div class="stat-sub">Published for students</div>
+          <div class="tap-hint">👆 Tap to manage slots →</div>
+        </div>
+        <div class="stat-card tapable" onclick="openInterviewerStatModal('domain')" title="Tap to view specialization details">
+          <div class="stat-label">Evaluator Domain</div>
+          <div class="stat-value" style="font-size:18px;color:var(--dark);" id="statDomainName">Full Stack</div>
+          <div class="stat-sub" id="statDomainSub">Technical Specialization</div>
+          <div class="tap-hint">👆 Tap for track matrix →</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Candidate Evaluation Queue</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Evaluate students who have cleared all contest skill levels and are defending their Track Badge.</p>
+          </div>
+          <div class="filter-bar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="scheduleSearchInput" class="form-input" 
+                   placeholder="🔍 Search candidate name, NIAT ID, or track..." 
+                   oninput="renderSchedule()" style="width:250px;padding:8px 14px;">
+            <select id="scheduleStatusFilter" onchange="renderSchedule()">
+              <option value="pending" selected>Pending Evaluations Only</option>
+              <option value="all">All Candidates (Active & Evaluated)</option>
+              <option value="completed">Completed Evaluations</option>
+            </select>
+            <select id="scheduleTrackFilter" onchange="renderSchedule()">
+              <option value="all">All Tracks</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body" id="scheduleListContainer">
+          <!-- Dynamically populated from PostgreSQL -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 2: SET AVAILABILITY ============ -->
+    <div class="section" id="sec-availability">
+      <div class="card" style="overflow:visible;">
+        <div class="card-header" style="padding:22px 24px;border-bottom:none;">
+          <div>
+            <h2 style="font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;">
+              <span>🗓️</span> Interview Availability Manager
+            </h2>
+            <p style="font-size:13.5px;color:var(--gray-500);margin-top:4px;">Publish, organize, and monitor 30-minute code defense windows for candidates in your track domain.</p>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="openAddSlotModal()" style="padding:10px 18px;font-weight:700;box-shadow:0 4px 12px rgba(79,70,229,0.25);">
+              + Publish New Slot
+            </button>
+          </div>
+        </div>
+
+        <!-- SUMMARY & FILTER TOOLBAR -->
+        <div class="avail-metrics-strip">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="avail-metric-item">
+              <span class="badge badge-green" id="availSummaryOpen" style="font-size:13px;padding:6px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;"></span>
+                <span id="availCountOpenText">... Open Windows</span>
+              </span>
+            </div>
+            <div class="avail-metric-item">
+              <span class="badge badge-purple" id="availSummaryReserved" style="font-size:13px;padding:6px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#6366f1;"></span>
+                <span id="availCountReservedText">... Reserved</span>
+              </span>
+            </div>
+            <div class="avail-metric-item">
+              <span class="tag" id="availSummaryDomain" style="font-size:12px;padding:6px 12px;font-weight:600;background:var(--gray-100);color:var(--gray-700);border:1px solid var(--gray-200);">
+                🎯 Evaluator Domain: <strong id="availDomainBadgeText" style="color:var(--primary);margin-left:4px;">Full Stack</strong>
+              </span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="position:relative;display:flex;align-items:center;">
+              <input type="text" id="availabilitySearchInput" class="form-input" 
+                     placeholder="🔍 Search date, time window, domain..." 
+                     oninput="handleAvailSearchInput()" style="width:280px;padding:9px 34px 9px 14px;font-size:13px;border-radius:8px;">
+              <button id="clearAvailSearchBtn" onclick="clearAvailSearch()" 
+                      style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:14px;display:none;" 
+                      title="Clear search">✕</button>
+            </div>
+            <select id="availabilityStatusFilter" onchange="renderAvailability()" class="form-input" style="padding:9px 14px;font-size:13px;border-radius:8px;font-weight:600;">
+              <option value="all">All Slot Statuses</option>
+              <option value="available">🟢 Available Windows Only</option>
+              <option value="booked">🔒 Reserved Bookings Only</option>
+            </select>
+            <div style="display:inline-flex;border-radius:8px;overflow:hidden;border:1px solid var(--gray-300);">
+              <button id="btnAvailViewCards" class="avail-view-btn active" onclick="switchAvailView('cards')" title="Grouped by Date">
+                📅 Date Groups
+              </button>
+              <button id="btnAvailViewTable" class="avail-view-btn" onclick="switchAvailView('table')" title="Tabular View">
+                📋 Table View
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding:24px;">
+          <div id="availabilityList">
+            <!-- Dynamically populated from getSlots() -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 3: EVALUATION HISTORY ============ -->
+    <div class="section" id="sec-history">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Candidate History & Decision Audit</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Review past decisions, rubrics, and feedback recorded in evaluation registry.</p>
+          </div>
+          <div class="filter-bar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="historySearchInput" class="form-input" 
+                   placeholder="🔍 Search candidate name, ID, track, notes/feedback..." 
+                   oninput="renderHistory()" style="width:270px;padding:8px 14px;">
+            <select id="historyOutcomeFilter" onchange="renderHistory()">
+              <option value="all">All Outcomes</option>
+              <option value="Passed">Passed</option>
+              <option value="Failed">Failed</option>
+              <option value="Retake">Retake</option>
+              <option value="Flagged">Flagged</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Track</th>
+                  <th>Date</th>
+                  <th>Decision</th>
+                  <th>Evaluator Notes & Feedback</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+          <div id="historyEmpty" class="empty-state" style="display:none;">
+            <div class="empty-icon">📂</div>
+            <h3>No evaluated candidates</h3>
+            <p>Completed candidate evaluations will be archived here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- OUTCOME RECORDING MODAL -->
+  <div class="modal-overlay" id="outcomeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Record Clearance Decision</h3>
+        <button class="modal-close" onclick="closeOutcomeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background:var(--gray-50);padding:14px;border-radius:10px;margin-bottom:18px;border:1px solid var(--gray-200);">
+          <div style="font-size:13px;color:var(--gray-500);">Candidate: <strong id="outcomeStudentName" style="color:var(--dark);">Student Name</strong></div>
+          <div style="font-size:14px;font-weight:700;margin-top:4px;" id="outcomeActionDisplay">Decision</div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label class="form-label">Evaluation Rubric & Competency Ratings</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px;">
+            <div>
+              <span style="font-size:11px;color:var(--gray-500);font-weight:700;text-transform:uppercase;">Technical Depth</span>
+              <select class="form-input" id="rubricTech" style="margin-top:4px;">
+                <option value="5">5 - Exceptional</option>
+                <option value="4" selected>4 - Proficient</option>
+                <option value="3">3 - Competent</option>
+                <option value="2">2 - Developing</option>
+                <option value="1">1 - Deficient</option>
+              </select>
+            </div>
+            <div>
+              <span style="font-size:11px;color:var(--gray-500);font-weight:700;text-transform:uppercase;">Communication</span>
+              <select class="form-input" id="rubricComm" style="margin-top:4px;">
+                <option value="5">5 - Articulate</option>
+                <option value="4" selected>4 - Clear</option>
+                <option value="3">3 - Adequate</option>
+                <option value="2">2 - Hesitant</option>
+                <option value="1">1 - Incoherent</option>
+              </select>
+            </div>
+            <div>
+              <span style="font-size:11px;color:var(--gray-500);font-weight:700;text-transform:uppercase;">Problem Solving</span>
+              <select class="form-input" id="rubricProb" style="margin-top:4px;">
+                <option value="5">5 - Creative</option>
+                <option value="4" selected>4 - Structured</option>
+                <option value="3">3 - Standard</option>
+                <option value="2">2 - Needs Hints</option>
+                <option value="1">1 - Blocked</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Evaluator Feedback & Recommendation</label>
+          <textarea id="outcomeNotes" class="form-input" style="height:95px;resize:vertical;" placeholder="Detail candidate strengths, areas needing improvement, or defense observations..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+          <button class="btn btn-outline" onclick="closeOutcomeModal()">Cancel</button>
+          <button class="btn btn-primary" id="outcomeConfirmBtn" onclick="confirmOutcomeSubmission()">Confirm & Submit Decision</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD SLOT MODAL -->
+  <div class="modal-overlay" id="addSlotModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Publish New Availability Window</h3>
+        <button class="modal-close" onclick="closeAddSlotModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Interview Date</label>
+          <input type="date" class="form-input" id="newSlotDate" onchange="updateAvailableTimeOptions()" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time Window (30-Minute Slot)</label>
+          <select class="form-input" id="newSlotTime">
+            <option value="10:00 AM - 10:45 AM">10:00 AM - 10:45 AM</option>
+            <option value="11:00 AM - 11:45 AM">11:00 AM - 11:45 AM</option>
+            <option value="02:00 PM - 02:45 PM">02:00 PM - 02:45 PM</option>
+            <option value="03:00 PM - 03:45 PM">03:00 PM - 03:45 PM</option>
+            <option value="04:00 PM - 04:45 PM">04:00 PM - 04:45 PM</option>
+          </select>
+          <div id="slotTimeConflictNotice" style="font-size:12px;color:var(--danger);margin-top:6px;display:none;background:#fef2f2;padding:8px 12px;border-radius:6px;border:1px solid rgba(239,68,68,0.2);"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Technical Track Specialization</label>
+          <select class="form-input" id="newSlotDomain">
+            <!-- Populated from evaluator's specializations -->
+          </select>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+          <button class="btn btn-outline" onclick="closeAddSlotModal()">Cancel</button>
+          <button class="btn btn-primary" id="publishSlotBtn" onclick="confirmAddSlot()">Publish Availability Slot</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERVIEWER STAT DETAIL MODAL -->
+  <div class="modal-overlay" id="interviewerDetailModal">
+    <div class="modal" style="max-width:720px;">
+      <div class="modal-header">
+        <h3 id="interviewerDetailModalTitle">Metric Details</h3>
+        <button class="modal-close" onclick="closeInterviewerDetailModal()">✕</button>
+      </div>
+      <div class="modal-body" id="interviewerDetailModalBody">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const currentUser = requireAuth(['interviewer', 'admin']);
+    if (!currentUser) {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#64748b;">Redirecting to faculty sign-in...</div>';
+      throw new Error('Faculty authentication required');
+    }
+    const myDomain = currentUser.domain || currentUser.specialization || 'Full Stack Development';
+
+    document.getElementById('interviewerName').textContent = currentUser.name;
+    document.getElementById('interviewerRole').textContent = currentUser.role === 'admin' ? 'Campus Admin (Reviewer Mode)' : `${myDomain} Evaluator`;
+    document.getElementById('interviewerAvatar').textContent = getInitials(currentUser.name);
+    document.getElementById('statDomainName').textContent = myDomain.split(',')[0].trim();
+    document.getElementById('statDomainSub').textContent = myDomain;
+    
+    // Populate domain selector from evaluator specializations
+    const domainSelect = document.getElementById('newSlotDomain');
+    const domains = myDomain.split(',').map(d => d.trim()).filter(Boolean);
+    domainSelect.innerHTML = domains.map(d => `<option value="${d}">${d}</option>`).join('');
+
+    function showInterviewerSection(secId) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('sec-' + secId).classList.add('active');
+      document.querySelectorAll('.nav-link').forEach((btn, idx) => {
+        btn.classList.toggle('active', 
+          (secId === 'schedule' && idx === 0) || 
+          (secId === 'availability' && idx === 1) || 
+          (secId === 'history' && idx === 2)
+        );
+      });
+      if (secId === 'schedule') renderSchedule();
+      if (secId === 'availability') renderAvailability();
+      if (secId === 'history') renderHistory();
+    }
+
+    async function populateScheduleTrackFilter() {
+      const tracks = await fetchTracksFromPg();
+      const select = document.getElementById('scheduleTrackFilter');
+      const cur = select.value;
+      select.innerHTML = '<option value="all">All Tracks</option>' + 
+        tracks.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+      if (cur) select.value = cur;
+    }
+
+    async function renderSchedule() {
+      await populateScheduleTrackFilter();
+      const pipeline = await fetchPipelineFromPg();
+      const trackFilter = document.getElementById('scheduleTrackFilter') ? document.getElementById('scheduleTrackFilter').value : 'all';
+      const statusFilterEl = document.getElementById('scheduleStatusFilter');
+      const statusFilter = statusFilterEl ? statusFilterEl.value : 'pending';
+      const searchEl = document.getElementById('scheduleSearchInput');
+      const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+      const container = document.getElementById('scheduleListContainer');
+
+      const relevant = pipeline.filter(item => {
+        if (item.status === 'Not Booked') return false;
+
+        const isEval = ['Passed', 'Failed', 'Retake', 'Flagged'].includes(item.status);
+        if (statusFilter === 'pending' && isEval) return false;
+        if (statusFilter === 'completed' && !isEval) return false;
+
+        if (trackFilter !== 'all' && item.track !== trackFilter) return false;
+
+        if (query) {
+          const matchName = (item.name || '').toLowerCase().includes(query);
+          const matchId = (item.id || '').toLowerCase().includes(query);
+          const matchTrack = (item.track || '').toLowerCase().includes(query);
+          const matchNotes = (item.notes || '').toLowerCase().includes(query);
+          if (!matchName && !matchId && !matchTrack && !matchNotes) return false;
+        }
+
+        return true;
+      });
+
+      if (relevant.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📅</div>
+            <h3>No candidates found in evaluation queue</h3>
+            <p>${statusFilter === 'pending' ? 'All scheduled candidates have been evaluated, or no new interview slots are booked.' : 'Try adjusting your search query, track filter, or status filter.'}</p>
+          </div>
+        `;
+        updateMetrics(pipeline);
+        return;
+      }
+
+      container.innerHTML = relevant.map(item => {
+        let borderLeft = 'var(--primary)';
+        let badgeHtml = '<span class="badge badge-blue">📅 Scheduled</span>';
+        const isEval = ['Passed', 'Failed', 'Retake', 'Flagged'].includes(item.status);
+
+        if (item.status === 'Passed') { borderLeft = 'var(--success)'; badgeHtml = '<span class="badge badge-green">✓ Passed — Badge Credited</span>'; }
+        if (item.status === 'Failed') { borderLeft = 'var(--danger)'; badgeHtml = '<span class="badge badge-red">✗ Failed — Retake in 7 Days</span>'; }
+        if (item.status === 'Retake') { borderLeft = 'var(--warning)'; badgeHtml = '<span class="badge badge-purple">↻ Retake Recommended</span>'; }
+        if (item.status === 'Flagged') { borderLeft = 'var(--danger)'; badgeHtml = '<span class="badge badge-red">🚩 Flagged Malpractice</span>'; }
+
+        let actionHtml = '';
+        if (isEval) {
+          actionHtml = `
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button class="btn btn-sm btn-outline" onclick="openOutcomeModal('${item.name}', '${item.status === 'Passed' ? 'Retake' : 'Passed'}')" title="Edit Decision / Notes">
+                ✏️ Edit Decision
+              </button>
+            </div>
+          `;
+        } else {
+          actionHtml = `
+            <div class="interview-actions">
+              <button class="btn btn-sm btn-success" onclick="openOutcomeModal('${item.name}', 'Passed')">✓ Pass</button>
+              <button class="btn btn-sm btn-danger" onclick="openOutcomeModal('${item.name}', 'Failed')">✗ Fail</button>
+              <button class="btn btn-sm btn-warning" onclick="openOutcomeModal('${item.name}', 'Retake')">↻ Retake</button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="interview-item" style="border-left: 5px solid ${borderLeft};">
+            <div class="interview-time">${formatDisplayDate(item.date, 'weekday')}<br><span style="font-size:12px;color:var(--gray-500);font-weight:600;">${formatDisplayTime(item.time, item.endTime)}</span></div>
+            <div class="interview-details">
+              <div class="interview-student">${item.name} <span style="font-size:12.5px;color:var(--gray-400);font-weight:500;">(${item.id})</span></div>
+              <div class="interview-track">${item.track} · <span class="tag">${item.attempt || '1st'} Attempt</span></div>
+              ${item.notes ? `<div style="font-size:13px;color:var(--gray-600);margin-top:6px;font-style:italic;background:var(--gray-50);padding:6px 12px;border-radius:6px;border-left:2px solid ${borderLeft};">"${item.notes}"</div>` : ''}
+            </div>
+            <div>
+              ${badgeHtml}
+            </div>
+            ${actionHtml}
+          </div>
+        `;
+      }).join('');
+
+      updateMetrics(pipeline);
+    }
+
+    let currentEvaluation = {};
+    function openOutcomeModal(studentName, outcome) {
+      currentEvaluation = { studentName, outcome };
+      document.getElementById('outcomeStudentName').textContent = studentName;
+      
+      const displayMap = {
+        'Passed': { text: '✅ PASS — Award Track Badge & Leaderboard Credential', color: 'var(--success-dark)' },
+        'Failed': { text: '❌ FAIL — Require Revision Period', color: 'var(--danger)' },
+        'Retake': { text: '🔄 RETAKE — Recommend Specific Topic Review', color: 'var(--warning)' }
+      };
+
+      const d = displayMap[outcome];
+      const dispEl = document.getElementById('outcomeActionDisplay');
+      dispEl.textContent = d.text;
+      dispEl.style.color = d.color;
+
+      const btn = document.getElementById('outcomeConfirmBtn');
+      btn.className = outcome === 'Passed' ? 'btn btn-success' : outcome === 'Failed' ? 'btn btn-danger' : 'btn btn-warning';
+
+      document.getElementById('outcomeNotes').value = '';
+      document.getElementById('outcomeModal').classList.add('active');
+    }
+
+    function closeOutcomeModal() {
+      document.getElementById('outcomeModal').classList.remove('active');
+    }
+
+    async function confirmOutcomeSubmission() {
+      const notes = document.getElementById('outcomeNotes').value.trim();
+      const tech = parseInt(document.getElementById('rubricTech').value, 10);
+      const comm = parseInt(document.getElementById('rubricComm').value, 10);
+      const prob = parseInt(document.getElementById('rubricProb').value, 10);
+
+      const pipeline = getPipeline();
+      const item = pipeline.find(p => p.name === currentEvaluation.studentName) || {};
+
+      const decisionMap = {
+        'Passed': 'PASS',
+        'Failed': 'FAIL',
+        'Retake': 'RETAKE'
+      };
+
+      try {
+        await fetch(API_BASE + '/evaluations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentName: currentEvaluation.studentName,
+            studentEmail: item.email || (currentEvaluation.studentName.toLowerCase().replace(' ', '') + '@niat.edu'),
+            trackName: item.track || 'Full Stack Development',
+            interviewerEmail: currentUser.email,
+            decision: decisionMap[currentEvaluation.outcome] || 'PASS',
+            scoreTech: tech,
+            scoreComm: comm,
+            scoreProb: prob,
+            feedbackNotes: notes || (currentEvaluation.outcome === 'Passed' ? 'Demonstrated solid technical understanding.' : 'Needs revision.')
+          })
+        });
+      } catch (e) {
+        console.warn('Evaluations API offline');
+      }
+
+      closeOutcomeModal();
+      showToast(`${currentEvaluation.studentName} marked as ${currentEvaluation.outcome.toUpperCase()}!`, currentEvaluation.outcome === 'Passed' ? 'success' : 'info');
+      await renderSchedule();
+      await renderHistory();
+    }
+
+    let availViewMode = 'cards';
+
+    function switchAvailView(mode) {
+      availViewMode = mode;
+      const btnCards = document.getElementById('btnAvailViewCards');
+      const btnTable = document.getElementById('btnAvailViewTable');
+      if (btnCards && btnTable) {
+        btnCards.classList.toggle('active', mode === 'cards');
+        btnTable.classList.toggle('active', mode === 'table');
+      }
+      renderAvailability();
+    }
+
+    function handleAvailSearchInput() {
+      const searchEl = document.getElementById('availabilitySearchInput');
+      const clearBtn = document.getElementById('clearAvailSearchBtn');
+      if (searchEl && clearBtn) {
+        clearBtn.style.display = searchEl.value.trim() ? 'block' : 'none';
+      }
+      renderAvailability();
+    }
+
+    function clearAvailSearch() {
+      const searchEl = document.getElementById('availabilitySearchInput');
+      const clearBtn = document.getElementById('clearAvailSearchBtn');
+      if (searchEl) searchEl.value = '';
+      if (clearBtn) clearBtn.style.display = 'none';
+      renderAvailability();
+    }
+
+    function openAddSlotForDate(rawDate) {
+      openAddSlotModal();
+      if (rawDate) {
+        const input = document.getElementById('newSlotDate');
+        if (input) {
+          const clean = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
+          input.value = clean;
+        }
+      }
+    }
+
+    async function renderAvailability() {
+      const [slots, pipeline] = await Promise.all([
+        fetchSlotsFromPg(),
+        fetchPipelineFromPg()
+      ]);
+      const container = document.getElementById('availabilityList');
+      const searchEl = document.getElementById('availabilitySearchInput');
+      const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+      const statusEl = document.getElementById('availabilityStatusFilter');
+      const statusFilter = statusEl ? statusEl.value : 'all';
+
+      // Update metrics strip summary
+      const totalOpen = slots.filter(s => !s.is_booked && !s.booked).length;
+      const totalReserved = slots.filter(s => s.is_booked || s.booked).length;
+      const openTextEl = document.getElementById('availCountOpenText');
+      const reservedTextEl = document.getElementById('availCountReservedText');
+      const domainBadgeEl = document.getElementById('availDomainBadgeText');
+      if (openTextEl) openTextEl.textContent = `${totalOpen} Available Windows`;
+      if (reservedTextEl) reservedTextEl.textContent = `${totalReserved} Reserved`;
+      if (domainBadgeEl) domainBadgeEl.textContent = myDomain.split(',')[0].trim();
+
+      const filtered = slots.filter(slot => {
+        const isBooked = slot.is_booked || slot.booked;
+        if (statusFilter === 'available' && isBooked) return false;
+        if (statusFilter === 'booked' && !isBooked) return false;
+
+        if (query) {
+          const rawDateStr = (slot.slot_date || slot.dateLabel || slot.date || '').toLowerCase();
+          const formattedDateStr = formatDisplayDate(slot.slot_date || slot.dateLabel || slot.date, 'weekday').toLowerCase();
+          const timeStr = (slot.start_time || slot.time || '').toLowerCase();
+          const formattedTimeStr = formatDisplayTime(slot.start_time || slot.time, slot.end_time).toLowerCase();
+          const domainStr = (slot.domain || '').toLowerCase();
+          const statusText = isBooked ? 'reserved booked' : 'open available';
+          
+          let candidateText = '';
+          if (isBooked) {
+            const cand = pipeline.find(p => p.date === slot.slot_date && p.time === slot.start_time);
+            if (cand) candidateText = `${cand.name} ${cand.id} ${cand.track}`.toLowerCase();
+          }
+
+          const matchesQuery = rawDateStr.includes(query) || 
+                               formattedDateStr.includes(query) || 
+                               timeStr.includes(query) || 
+                               formattedTimeStr.includes(query) || 
+                               domainStr.includes(query) || 
+                               statusText.includes(query) || 
+                               candidateText.includes(query);
+
+          if (!matchesQuery) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      // 1. Deduplicate slots in memory (interviewer_email + slot_date + start_time)
+      const seen = new Set();
+      const distinctSlots = [];
+      for (const slot of filtered) {
+        const key = `${(slot.interviewer_email || currentUser.email).toLowerCase()}|${slot.slot_date}|${slot.start_time}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          distinctSlots.push(slot);
+        }
+      }
+
+      if (distinctSlots.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding:48px 24px;background:#fbfcfe;border:1px dashed var(--gray-200);border-radius:12px;">
+            <div class="empty-icon" style="font-size:36px;margin-bottom:12px;">🔍</div>
+            <h3 style="font-size:17px;font-weight:700;color:var(--dark);margin-bottom:6px;">No availability slots match your criteria</h3>
+            <p style="font-size:13.5px;color:var(--gray-500);max-width:440px;margin:0 auto 16px;">
+              ${query ? `No slots matched "${escapeHtml(query)}". Try adjusting your search or clearing filters.` : 'No slots currently published for this filter.'}
+            </p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+              ${query || statusFilter !== 'all' ? `<button class="btn btn-sm btn-outline" onclick="clearAvailSearch(); document.getElementById('availabilityStatusFilter').value='all'; renderAvailability();">Reset Filters</button>` : ''}
+              <button class="btn btn-sm btn-primary" onclick="openAddSlotModal()">+ Publish New Slot</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (availViewMode === 'table') {
+        // Sort chronologically by date and start_time
+        distinctSlots.sort((a, b) => {
+          const dateDiff = new Date(a.slot_date) - new Date(b.slot_date);
+          if (dateDiff !== 0) return dateDiff;
+          return timeToMinutes(a.start_time || a.time) - timeToMinutes(b.start_time || b.time);
+        });
+
+        // RENDER STRUCTURED TABLE VIEW
+        container.innerHTML = `
+          <div class="table-responsive" style="border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;background:white;">
+            <table class="table" style="margin:0;">
+              <thead style="background:#f8fafc;">
+                <tr>
+                  <th style="padding:14px 18px;font-weight:700;color:var(--gray-600);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Date</th>
+                  <th style="padding:14px 18px;font-weight:700;color:var(--gray-600);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Time Window</th>
+                  <th style="padding:14px 18px;font-weight:700;color:var(--gray-600);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Track Domain</th>
+                  <th style="padding:14px 18px;font-weight:700;color:var(--gray-600);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Status</th>
+                  <th style="padding:14px 18px;font-weight:700;color:var(--gray-600);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Booked Candidate</th>
+                  <th style="padding:14px 18px;font-weight:700;color:var(--gray-600);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;text-align:right;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${distinctSlots.map(slot => {
+                  const isBooked = slot.is_booked || slot.booked;
+                  const dateStr = formatDisplayDate(slot.slot_date || slot.dateLabel || slot.date, 'weekday');
+                  const timeStr = formatDisplayTime(slot.start_time || slot.time, slot.end_time);
+                  const slotDomain = slot.domain || myDomain;
+
+                  let candInfo = '<span style="color:var(--gray-400);font-style:italic;">— Unassigned —</span>';
+                  if (isBooked) {
+                    const cand = pipeline.find(p => p.date === slot.slot_date && p.time === slot.start_time);
+                    if (cand) {
+                      candInfo = `<strong>${cand.name}</strong> <span style="font-size:12px;color:var(--gray-500);">(${cand.id})</span>`;
+                    } else {
+                      candInfo = `<strong>${slot.booked_student_name || 'Enrolled Student'}</strong>`;
+                    }
+                  }
+
+                  return `
+                    <tr style="border-bottom:1px solid var(--gray-100);">
+                      <td style="padding:14px 18px;font-weight:700;color:var(--dark);">${dateStr}</td>
+                      <td style="padding:14px 18px;font-weight:600;color:var(--gray-700);">⏰ ${timeStr}</td>
+                      <td style="padding:14px 18px;"><span class="tag" style="font-size:12px;">${slotDomain}</span></td>
+                      <td style="padding:14px 18px;">
+                        ${isBooked ? 
+                          `<span class="badge badge-purple" style="font-size:12px;padding:4px 10px;">🔒 Reserved</span>` : 
+                          `<span class="badge badge-green" style="font-size:12px;padding:4px 10px;">✓ Available</span>`
+                        }
+                      </td>
+                      <td style="padding:14px 18px;font-size:13px;">${candInfo}</td>
+                      <td style="padding:14px 18px;text-align:right;">
+                        ${!isBooked ? 
+                          `<button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--gray-300);padding:4px 10px;font-size:12px;" onclick="deleteSlot('${slot.id}')">🗑️ Remove</button>` : 
+                          `<button class="btn btn-sm btn-outline" style="color:var(--primary);border-color:rgba(99,102,241,0.3);padding:4px 10px;font-size:12px;" onclick="showInterviewerSection('schedule')">Queue →</button>`
+                        }
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      // RENDER MODERN DATE GROUPED CARDS VIEW
+      const groups = {};
+      distinctSlots.forEach(slot => {
+        const dKey = slot.slot_date || slot.dateLabel || slot.date || 'Unscheduled';
+        if (!groups[dKey]) groups[dKey] = [];
+        groups[dKey].push(slot);
+      });
+
+      // Sort dates chronologically
+      const sortedDates = Object.keys(groups).sort((a, b) => new Date(a) - new Date(b));
+
+      container.innerHTML = sortedDates.map(dKey => {
+        const daySlots = groups[dKey];
+        // Sort slots within the day chronologically by start_time (10:00 AM before 02:00 PM)
+        daySlots.sort((a, b) => timeToMinutes(a.start_time || a.time) - timeToMinutes(b.start_time || b.time));
+
+        const dayOpen = daySlots.filter(s => !s.is_booked && !s.booked).length;
+        const dayReserved = daySlots.filter(s => s.is_booked || s.booked).length;
+
+        // Parse date for calendar badge
+        const dObj = new Date(dKey.includes('T') ? dKey : dKey + 'T00:00:00');
+        const monthShort = isNaN(dObj.getTime()) ? 'DATE' : dObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+        const dayNum = isNaN(dObj.getTime()) ? '—' : dObj.getDate();
+        const formattedDate = formatDisplayDate(dKey, 'weekday');
+
+        return `
+          <div class="avail-date-group">
+            <div class="avail-date-header">
+              <div class="avail-date-badge">
+                <div class="avail-date-icon-box">
+                  <div style="font-size:10.5px;font-weight:800;color:var(--primary);letter-spacing:0.5px;">${monthShort}</div>
+                  <div style="font-size:18px;font-weight:800;color:var(--dark);line-height:1.1;">${dayNum}</div>
+                </div>
+                <div>
+                  <h3 style="font-size:16px;font-weight:700;color:var(--dark);margin:0;">${formattedDate}</h3>
+                  <div style="font-size:12.5px;color:var(--gray-500);margin-top:2px;display:flex;align-items:center;gap:8px;">
+                    <span><strong>${daySlots.length}</strong> total slots scheduled</span>
+                    <span>•</span>
+                    <span style="color:var(--success);font-weight:600;">${dayOpen} open</span>
+                    <span>•</span>
+                    <span style="color:var(--primary);font-weight:600;">${dayReserved} reserved</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button class="btn btn-sm btn-outline" style="font-size:12.5px;padding:6px 14px;background:white;font-weight:600;" 
+                        onclick="openAddSlotForDate('${dKey}')">
+                  + Add Slot for this Date
+                </button>
+              </div>
+            </div>
+
+            <div class="avail-slot-grid">
+              ${daySlots.map(slot => {
+                const isBooked = slot.is_booked || slot.booked;
+                const timeStr = formatDisplayTime(slot.start_time || slot.time, slot.end_time);
+                const slotDomain = slot.domain || myDomain;
+
+                if (isBooked) {
+                  const cand = pipeline.find(p => p.date === slot.slot_date && p.time === slot.start_time);
+                  const candName = cand ? cand.name : (slot.booked_student_name || 'Enrolled Student');
+                  const candId = cand ? cand.id : (slot.booked_student_id || 'NIAT2024');
+                  const candTrack = cand ? cand.track : slotDomain;
+
+                  return `
+                    <div class="avail-slot-card reserved">
+                      <div>
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px;">
+                          <div>
+                            <div style="font-size:15px;font-weight:700;color:var(--dark);display:flex;align-items:center;gap:6px;">
+                              <span style="font-size:16px;">⏰</span> ${timeStr}
+                            </div>
+                            <div style="font-size:12px;color:var(--primary);margin-top:2px;font-weight:600;">
+                              Live Defense Confirmed
+                            </div>
+                          </div>
+                          <span class="badge badge-purple" style="font-size:11.5px;padding:4px 9px;font-weight:700;">🔒 Reserved</span>
+                        </div>
+
+                        <div style="margin-bottom:14px;background:#f5f3ff;padding:12px;border-radius:10px;border:1px solid rgba(99,102,241,0.2);">
+                          <div style="font-size:10.5px;color:var(--primary);text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-bottom:4px;">
+                            Assigned Candidate
+                          </div>
+                          <div style="font-weight:700;font-size:14px;color:var(--dark);">
+                            ${candName} <span style="font-size:12px;color:var(--gray-500);font-weight:500;">(${candId})</span>
+                          </div>
+                          <div style="font-size:12px;color:var(--gray-600);margin-top:3px;">
+                            Track: <strong style="color:var(--primary);">${candTrack}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px dashed rgba(99,102,241,0.25);">
+                        <span style="font-size:11.5px;color:var(--primary);font-weight:600;display:flex;align-items:center;gap:4px;">
+                          ✓ In Evaluation Pipeline
+                        </span>
+                        <button class="btn btn-sm btn-primary" style="font-size:12px;padding:5px 12px;font-weight:600;" 
+                                onclick="showInterviewerSection('schedule')" title="Jump to Evaluation Queue">
+                          View in Queue →
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                }
+
+                // Open Slot Card
+                return `
+                  <div class="avail-slot-card open">
+                    <div>
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px;">
+                        <div>
+                          <div style="font-size:15px;font-weight:700;color:var(--dark);display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:16px;">⏰</span> ${timeStr}
+                          </div>
+                          <div style="font-size:12px;color:var(--gray-500);margin-top:2px;font-weight:500;">
+                            30-Minute Code Defense Window
+                          </div>
+                        </div>
+                        <span class="badge badge-green" style="font-size:11.5px;padding:4px 9px;font-weight:700;">✓ Open</span>
+                      </div>
+
+                      <div style="margin-bottom:14px;background:var(--gray-50);padding:10px 12px;border-radius:10px;border:1px solid var(--gray-200);">
+                        <div style="font-size:10.5px;color:var(--gray-500);text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-bottom:4px;">
+                          Track Specialization
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                          <span class="tag" style="font-weight:600;font-size:12px;">${slotDomain}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px dashed var(--gray-200);">
+                      <span style="font-size:12px;color:var(--success);font-weight:600;display:flex;align-items:center;gap:4px;">
+                        ● Open for Booking
+                      </span>
+                      <button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--gray-300);font-size:12px;padding:4px 10px;" 
+                              onclick="deleteSlot('${slot.id}')" title="Delete availability window">
+                        🗑️ Remove
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openAddSlotModal() {
+      document.getElementById('addSlotModal').classList.add('active');
+      const dateInput = document.getElementById('newSlotDate');
+      if (dateInput && !dateInput.value) {
+        dateInput.value = '2026-11-20';
+      }
+      updateAvailableTimeOptions();
+    }
+
+    function closeAddSlotModal() {
+      document.getElementById('addSlotModal').classList.remove('active');
+      const publishBtn = document.getElementById('publishSlotBtn');
+      if (publishBtn) {
+        publishBtn.disabled = false;
+        publishBtn.textContent = 'Publish Availability Slot';
+      }
+      const conflictNotice = document.getElementById('slotTimeConflictNotice');
+      if (conflictNotice) conflictNotice.style.display = 'none';
+    }
+
+    function openAddSlotForDate(rawDate) {
+      openAddSlotModal();
+      if (rawDate) {
+        const input = document.getElementById('newSlotDate');
+        if (input) {
+          const clean = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
+          input.value = clean;
+          updateAvailableTimeOptions();
+        }
+      }
+    }
+
+    async function updateAvailableTimeOptions() {
+      const dateInput = document.getElementById('newSlotDate');
+      const timeSelect = document.getElementById('newSlotTime');
+      const publishBtn = document.getElementById('publishSlotBtn');
+      const conflictNotice = document.getElementById('slotTimeConflictNotice');
+      if (!dateInput || !timeSelect || !dateInput.value) return;
+
+      const cleanDate = dateInput.value.includes('T') ? dateInput.value.split('T')[0] : dateInput.value;
+      const slots = await fetchSlotsFromPg(currentUser.email);
+
+      // Collect times already published by this evaluator on this date
+      const takenTimes = new Set();
+      slots.forEach(s => {
+        const sDate = s.slot_date ? (s.slot_date.includes('T') ? s.slot_date.split('T')[0] : s.slot_date) : '';
+        if (sDate === cleanDate && s.start_time) {
+          takenTimes.add(s.start_time.trim().toLowerCase());
+        }
+      });
+
+      const standardOptions = [
+        { val: '10:00 AM - 10:45 AM', start: '10:00 am' },
+        { val: '11:00 AM - 11:45 AM', start: '11:00 am' },
+        { val: '02:00 PM - 02:45 PM', start: '02:00 pm' },
+        { val: '03:00 PM - 03:45 PM', start: '03:00 pm' },
+        { val: '04:00 PM - 04:45 PM', start: '04:00 pm' }
+      ];
+
+      timeSelect.innerHTML = standardOptions.map(opt => {
+        const isTaken = takenTimes.has(opt.start);
+        return `<option value="${opt.val}" ${isTaken ? 'disabled style="color:#94a3b8;background:#f8fafc;"' : ''}>
+          ${opt.val} ${isTaken ? '🔒 (Already Published)' : '✓ (Available)'}
+        </option>`;
+      }).join('');
+
+      const availableOption = timeSelect.querySelector('option:not([disabled])');
+      if (availableOption) {
+        availableOption.selected = true;
+        if (publishBtn) {
+          publishBtn.disabled = false;
+          publishBtn.textContent = 'Publish Availability Slot';
+        }
+        if (conflictNotice) conflictNotice.style.display = 'none';
+      } else {
+        if (publishBtn) {
+          publishBtn.disabled = true;
+          publishBtn.textContent = 'All Windows Published for Date';
+        }
+        if (conflictNotice) {
+          conflictNotice.textContent = `All standard evaluation windows on ${formatDisplayDate(cleanDate, 'weekday')} are already published in your schedule.`;
+          conflictNotice.style.display = 'block';
+        }
+      }
+    }
+
+    async function confirmAddSlot() {
+      const rawDate = document.getElementById('newSlotDate').value;
+      const time = document.getElementById('newSlotTime').value;
+      const slotDomain = document.getElementById('newSlotDomain') ? document.getElementById('newSlotDomain').value : myDomain;
+      const publishBtn = document.getElementById('publishSlotBtn');
+
+      if (!rawDate) {
+        showToast('Please select an interview date', 'error');
+        return;
+      }
+
+      const times = time.split(' - ');
+      const startTime = times[0] ? times[0].trim() : '10:00 AM';
+      const endTime = times[1] ? times[1].trim() : '10:45 AM';
+      const cleanDate = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
+
+      // 1. Client-side duplicate check
+      const existingSlots = await fetchSlotsFromPg(currentUser.email);
+      const isDuplicate = existingSlots.some(s => {
+        const sDate = s.slot_date ? (s.slot_date.includes('T') ? s.slot_date.split('T')[0] : s.slot_date) : '';
+        return sDate === cleanDate && s.start_time.trim().toLowerCase() === startTime.trim().toLowerCase();
+      });
+
+      if (isDuplicate) {
+        showToast(`⚠️ Slot Conflict: An availability slot for ${formatDisplayDate(cleanDate, 'weekday')} at ${time} is already published in your schedule.`, 'error');
+        return;
+      }
+
+      if (publishBtn) {
+        publishBtn.disabled = true;
+        publishBtn.textContent = 'Publishing...';
+      }
+
+      try {
+        const res = await fetch(API_BASE + '/slots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            interviewerId: currentUser.id || 'usr-eval',
+            interviewerName: currentUser.name,
+            interviewerEmail: currentUser.email,
+            slotDate: cleanDate,
+            startTime,
+            endTime,
+            domain: slotDomain || myDomain
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          showToast(data.message || 'Could not publish slot: conflict detected.', 'error');
+          if (publishBtn) {
+            publishBtn.disabled = false;
+            publishBtn.textContent = 'Publish Availability Slot';
+          }
+          return;
+        }
+
+        closeAddSlotModal();
+        showToast('New interview clearance slot published successfully!', 'success');
+        await renderAvailability();
+      } catch (e) {
+        console.warn('Slots API offline');
+        showToast('Server communication error. Please try again.', 'error');
+        if (publishBtn) {
+          publishBtn.disabled = false;
+          publishBtn.textContent = 'Publish Availability Slot';
+        }
+      }
+    }
+
+    async function deleteSlot(slotId) {
+      try {
+        await fetch(API_BASE + '/slots/' + encodeURIComponent(slotId), { method: 'DELETE' });
+      } catch (e) {
+        console.warn('Delete slot API offline');
+      }
+      showToast('Slot removed from availability pool', 'info');
+      await renderAvailability();
+    }
+
+    async function renderHistory() {
+      const pipeline = await fetchPipelineFromPg();
+      const filter = document.getElementById('historyOutcomeFilter') ? document.getElementById('historyOutcomeFilter').value : 'all';
+      const searchEl = document.getElementById('historySearchInput');
+      const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+      const tbody = document.getElementById('historyTableBody');
+      const empty = document.getElementById('historyEmpty');
+
+      const evaluated = pipeline.filter(item => {
+        const isEval = ['Passed', 'Failed', 'Retake', 'Flagged'].includes(item.status);
+        const matchesFilter = filter === 'all' || item.status === filter;
+        if (!isEval || !matchesFilter) return false;
+
+        if (query) {
+          const matchName = (item.name || '').toLowerCase().includes(query);
+          const matchId = (item.id || '').toLowerCase().includes(query);
+          const matchTrack = (item.track || '').toLowerCase().includes(query);
+          const matchNotes = (item.notes || '').toLowerCase().includes(query);
+          if (!matchName && !matchId && !matchTrack && !matchNotes) return false;
+        }
+
+        return true;
+      });
+
+      if (evaluated.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      tbody.innerHTML = evaluated.map(s => `
+        <tr>
+          <td><strong>${s.name}</strong><br><span style="font-size:12px;color:var(--gray-400);">${s.id}</span></td>
+          <td>${s.track}</td>
+          <td>${s.date !== '—' ? formatDisplayDate(s.date, 'short') : 'Recent'}</td>
+          <td>${getStatusBadge(s.status)}</td>
+          <td style="max-width:320px;font-size:13px;color:var(--gray-600);">${s.notes || '—'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="openOutcomeModal('${s.name}', '${s.status === 'Passed' ? 'Retake' : 'Passed'}')">Edit Decision</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function getStatusBadge(status) {
+      const map = {
+        'Passed':     '<span class="badge badge-green">✓ Passed</span>',
+        'Failed':     '<span class="badge badge-red">✗ Failed</span>',
+        'Retake':     '<span class="badge badge-purple">↻ Retake</span>',
+        'Flagged':    '<span class="badge badge-red">🚩 Flagged</span>',
+      };
+      return map[status] || status;
+    }
+
+    async function updateMetrics(pipelineData) {
+      const pipeline = pipelineData || await fetchPipelineFromPg();
+      const slots = await fetchSlotsFromPg();
+
+      const assignedCount = pipeline.filter(p => p.status !== 'Not Booked').length;
+      const openCount = slots.filter(s => !s.is_booked && !s.booked).length;
+
+      document.getElementById('statTodayTotal').textContent = assignedCount;
+      document.getElementById('statOpenSlots').textContent = openCount;
+    }
+
+    // ==========================================
+    // INTERVIEWER DASHBOARD TAPABLE STAT MODALS
+    // ==========================================
+    function closeInterviewerDetailModal() {
+      document.getElementById('interviewerDetailModal').classList.remove('active');
+    }
+
+    async function openInterviewerStatModal(type) {
+      const pipeline = await fetchPipelineFromPg();
+      const slots = await fetchSlotsFromPg();
+      const modal = document.getElementById('interviewerDetailModal');
+      const titleEl = document.getElementById('interviewerDetailModalTitle');
+      const bodyEl = document.getElementById('interviewerDetailModalBody');
+
+      let title = '';
+      let content = '';
+
+      if (type === 'candidates') {
+        title = '📋 Assigned Candidate Queue Breakdown';
+        const assigned = pipeline.filter(p => p.status !== 'Not Booked');
+        content = `
+          <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+            ${assigned.length} candidates currently assigned for live level clearance defense evaluation.
+          </p>
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Track</th>
+                  <th>Slot Time</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${assigned.map(a => `
+                  <tr>
+                    <td><strong>${a.name}</strong><br><span style="font-size:11.5px;color:var(--gray-400);">${a.id}</span></td>
+                    <td>${a.track}</td>
+                    <td style="color:var(--primary);font-weight:600;">${formatInterviewSchedule(a.date, a.time, a.endTime)}</td>
+                    <td>${getStatusBadge(a.status)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else if (type === 'slots') {
+        title = '🗓️ Open Availability Slots';
+        const open = slots.filter(s => !s.is_booked && !s.booked);
+        content = `
+          <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+            ${open.length} slots currently published and available for student candidate reservations.
+          </p>
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time Window</th>
+                  <th>Specialization Domain</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${open.map(o => `
+                  <tr>
+                    <td style="font-weight:600;">${formatDisplayDate(o.slot_date, 'weekday')}</td>
+                    <td style="color:var(--gray-900);">${formatDisplayTime(o.start_time, o.end_time)}</td>
+                    <td><span class="tag">${o.domain || myDomain}</span></td>
+                    <td><span class="badge badge-green">Open for Booking</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:10px;">
+            <button class="btn btn-primary btn-sm" onclick="closeInterviewerDetailModal(); openAddSlotModal();">+ Publish New Slot</button>
+          </div>
+        `;
+      } else if (type === 'domain') {
+        title = '🎯 Evaluator Domain & Competency Mapping';
+        const domains = myDomain.split(',').map(d => d.trim()).filter(Boolean);
+        content = `
+          <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+            Technical tracks where your faculty evaluations and code defense decisions are certified.
+          </p>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            ${domains.map(d => `
+              <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <div style="font-size:15px;font-weight:700;color:var(--gray-900);">⚡ ${d}</div>
+                  <div style="font-size:12px;color:var(--gray-500);margin-top:3px;">Senior Domain Evaluator · 3-Axis Rubric Reviewer</div>
+                </div>
+                <span class="badge badge-purple">Active Specialization</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      titleEl.innerHTML = title;
+      bodyEl.innerHTML = content;
+      modal.classList.add('active');
+    }
+
+    // Init
+    renderSchedule();
+  </script>
+</body>
+</html>

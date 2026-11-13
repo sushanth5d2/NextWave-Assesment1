@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Access — NextWave</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>NextWave</h1>
+        <p id="authSubtitle">Clearance Portal</p>
+      </div>
+      <div class="auth-body">
+        
+        <!-- Role Pill -->
+        <div style="display:flex;justify-content:center;margin-bottom:20px;">
+          <span class="badge badge-purple" id="rolePill" style="font-size:13px;padding:6px 18px;"></span>
+        </div>
+
+        <div class="auth-tabs" id="authTabs">
+          <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign In</button>
+          <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Create Account</button>
+        </div>
+
+        <!-- 1. LOGIN FORM -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-input" id="loginEmail" placeholder="your.name@niat.edu" required>
+          </div>
+          <div class="form-group">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0;">Password</label>
+              <a href="javascript:void(0)" onclick="openForgotModal()" style="font-size:12.5px;font-weight:600;">Forgot Password?</a>
+            </div>
+            <input type="password" class="form-input" id="loginPassword" placeholder="Enter your password" required>
+          </div>
+          
+          <div id="loginError" style="color:var(--danger);font-size:13px;margin-bottom:14px;display:none;"></div>
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">Sign In →</button>
+        </form>
+
+        <!-- 2. REGISTRATION FORM (Students & Interviewers) -->
+        <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-input" id="regName" placeholder="e.g. Vikram Sharma" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-input" id="regEmail" placeholder="e.g. vikram@niat.edu" required>
+          </div>
+          
+          <div id="regExtraFields"></div>
+
+          <div class="form-group">
+            <label class="form-label">Create Password</label>
+            <input type="password" class="form-input" id="regPassword" placeholder="Minimum 4 characters" required minlength="4">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <input type="password" class="form-input" id="regConfirm" placeholder="Re-enter password" required minlength="4">
+          </div>
+
+          <div id="regError" style="color:var(--danger);font-size:13px;margin-bottom:14px;display:none;"></div>
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">Register & Continue →</button>
+        </form>
+
+        <div style="text-align:center;margin-top:24px;">
+          <a href="index.html" style="font-size:13px;color:var(--gray-500);font-weight:600;">← Back to role selection</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD MODAL -->
+  <div class="modal-overlay" id="forgotModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Reset Account Password</h3>
+        <button class="modal-close" onclick="closeForgotModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--gray-600);margin-bottom:18px;font-size:14px;">
+          Enter your registered email address and your new password to restore account access.
+        </p>
+        <form id="forgotForm" onsubmit="handleResetPassword(event)">
+          <div class="form-group">
+            <label class="form-label">Registered Email</label>
+            <input type="email" class="form-input" id="forgotEmail" placeholder="your.name@niat.edu" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input type="password" class="form-input" id="forgotNewPassword" placeholder="Enter new password" required minlength="4">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" class="form-input" id="forgotConfirmPassword" placeholder="Confirm new password" required minlength="4">
+          </div>
+          <div id="forgotMessage" style="font-size:13px;margin-bottom:14px;display:none;"></div>
+          <div style="display:flex;gap:12px;justify-content:flex-end;">
+            <button type="button" class="btn btn-outline" onclick="closeForgotModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get('role') || 'student';
+    const isStudent = role === 'student';
+    const isAdmin = role === 'admin';
+    const isInterviewer = role === 'interviewer';
+
+    const roleLabels = {
+      student: '🎓 Student Portal',
+      interviewer: '👨‍🏫 Interviewer Portal',
+      admin: '👑 Admin & Team Lead Portal'
+    };
+    document.getElementById('authSubtitle').textContent = roleLabels[role] || 'Portal Login';
+    document.getElementById('rolePill').textContent = roleLabels[role] || role.toUpperCase();
+
+    if (isStudent) {
+      document.getElementById('regExtraFields').innerHTML = `
+        <div class="form-group">
+          <label class="form-label">NIAT Student ID</label>
+          <input type="text" class="form-input" id="regNiatId" placeholder="NIAT2024-XXXX" required>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Batch Year</label>
+            <select class="form-input" id="regBatch" required>
+              <option value="2024" selected>2024</option>
+              <option value="2023">2023</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Campus</label>
+            <select class="form-input" id="regCampus" required>
+              <option value="Hyderabad" selected>Hyderabad</option>
+              <option value="Bangalore">Bangalore</option>
+              <option value="Chennai">Chennai</option>
+            </select>
+          </div>
+        </div>
+      `;
+    } else if (isInterviewer) {
+      const tracks = getTracks();
+      const domainOptions = tracks.map(t => `<option value="${t.name}">${t.name} (${t.domain})</option>`).join('');
+
+      document.getElementById('regExtraFields').innerHTML = `
+        <div class="form-group">
+          <label class="form-label">Domain Specialization (Track Area)</label>
+          <select class="form-input" id="regSpecialization" required>
+            ${domainOptions}
+          </select>
+        </div>
+      `;
+    } else {
+      document.getElementById('authTabs').style.display = 'none';
+      document.getElementById('loginEmail').value = 'admin@niat.edu';
+      document.getElementById('loginPassword').value = 'admin123';
+    }
+
+    function switchAuthTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+      });
+      document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+      document.getElementById('loginError').style.display = 'none';
+      document.getElementById('regError').style.display = 'none';
+    }
+
+    function redirectToPortal(r) {
+      if (r === 'admin') window.location.href = 'admin.html';
+      else if (r === 'interviewer') window.location.href = 'interviewer.html';
+      else window.location.href = 'student.html';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      
+      const res = await apiLogin(email, password, role);
+      if (!res.success) {
+        const errEl = document.getElementById('loginError');
+        errEl.textContent = res.message || ('Account not found for ' + roleLabels[role]);
+        errEl.style.display = 'block';
+        return;
+      }
+
+      setUser(res.user);
+      showToast('Welcome back, ' + res.user.name + '!', 'success');
+      setTimeout(() => redirectToPortal(role), 350);
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const confirm = document.getElementById('regConfirm').value;
+      const errEl = document.getElementById('regError');
+
+      if (password !== confirm) {
+        errEl.textContent = 'Passwords do not match.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const userData = {
+        name,
+        email,
+        password,
+        role: role
+      };
+
+      if (isStudent) {
+        userData.niatId = document.getElementById('regNiatId').value.trim();
+        userData.batch = parseInt(document.getElementById('regBatch').value);
+        userData.campus = document.getElementById('regCampus').value;
+      } else if (isInterviewer) {
+        userData.domain = document.getElementById('regSpecialization').value;
+      }
+
+      const res = await apiRegister(userData);
+      if (!res.success) {
+        errEl.textContent = res.message || 'Registration failed.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      setUser(res.user);
+      showToast('Account registered successfully!', 'success');
+      setTimeout(() => redirectToPortal(role), 450);
+    }
+
+    function openForgotModal() {
+      document.getElementById('forgotModal').classList.add('active');
+      document.getElementById('forgotEmail').value = document.getElementById('loginEmail').value;
+      document.getElementById('forgotMessage').style.display = 'none';
+    }
+    function closeForgotModal() {
+      document.getElementById('forgotModal').classList.remove('active');
+    }
+
+    async function handleResetPassword(e) {
+      e.preventDefault();
+      const email = document.getElementById('forgotEmail').value.trim();
+      const newPass = document.getElementById('forgotNewPassword').value;
+      const confirmPass = document.getElementById('forgotConfirmPassword').value;
+      const msgEl = document.getElementById('forgotMessage');
+
+      if (newPass !== confirmPass) {
+        msgEl.style.color = 'var(--danger)';
+        msgEl.textContent = 'New passwords do not match.';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      const res = await apiResetPassword(email, newPass);
+      if (res.success) {
+        msgEl.style.color = 'var(--success-dark)';
+        msgEl.textContent = res.message;
+        msgEl.style.display = 'block';
+        document.getElementById('loginEmail').value = email;
+        document.getElementById('loginPassword').value = newPass;
+        showToast('Password reset successful! Please sign in.', 'success');
+        setTimeout(() => closeForgotModal(), 1200);
+      } else {
+        msgEl.style.color = 'var(--danger)';
+        msgEl.textContent = res.message;
+        msgEl.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

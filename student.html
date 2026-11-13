@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Portal — NextWave</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- TOP NAVIGATION -->
+  <nav class="top-nav">
+    <div class="logo" onclick="window.location.href='student.html'">
+      NextWave <span class="tagline">Student Portal</span>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="showSection('dashboard')">Candidate Dashboard</button>
+      <button class="nav-link" onclick="showSection('explore')">Explore & Enroll Courses</button>
+      <button class="nav-link" onclick="showSection('booking')">Book Clearance Interview</button>
+      <button class="nav-link" onclick="showSection('comparison')">Before vs After Result</button>
+    </div>
+    <div class="user-info">
+      <div class="user-details">
+        <div class="user-name" id="userName">Student</div>
+        <div class="user-role" id="userMeta">Candidate</div>
+      </div>
+      <div class="user-avatar" id="userAvatar">ST</div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="main">
+
+    <!-- ============ SECTION 1: DASHBOARD ============ -->
+    <div class="section active" id="sec-dashboard">
+
+      <div class="hero-banner">
+        <h1 id="heroGreeting">👋 Welcome to your NextWave Journey!</h1>
+        <p>Clear contest skill levels, pass your live Level Clearance Interview, and earn verified industry-recognized Track Badges.</p>
+      </div>
+
+      <!-- State-based dynamic banner messages (The 3 Core Assignment Messages + Workflow Gates) -->
+      <!-- Message 0: Not Enrolled in Any Track -->
+      <div class="message-banner msg-info" id="msg-not-enrolled" style="display:none;background:var(--primary-light);border-left:4px solid var(--primary);">
+        <div class="msg-icon">👋</div>
+        <div>
+          <div class="msg-title">Get Started on your NextWave Journey!</div>
+          <div>You are not currently enrolled in any skill tracks. Explore the course categories catalog and enroll in a track to begin clearing skill contests and earning verified badges. <a href="javascript:void(0)" onclick="showSection('explore')" style="font-weight:700;">Explore Course Catalog & Enroll →</a></div>
+        </div>
+      </div>
+
+      <!-- Message: Skill Contests in Progress -->
+      <div class="message-banner msg-warning" id="msg-in-progress" style="display:none;background:var(--warning-light);border-left:4px solid var(--warning);">
+        <div class="msg-icon">⚡</div>
+        <div>
+          <div class="msg-title" id="inProgressMsgTitle">Skill Contests in Progress</div>
+          <div id="inProgressMsgBody">Complete all prerequisite contest skills to unlock your Level Clearance Interview slot.</div>
+        </div>
+      </div>
+
+      <!-- Message 1: Eligible to Book -->
+      <div class="message-banner msg-info" id="msg-eligible" style="display:none;">
+        <div class="msg-icon">🎯</div>
+        <div>
+          <div class="msg-title">Level Clearance Interview Required</div>
+          <div>You've cleared all 6 skills for <strong>Full Stack Development</strong>. Book your interview slot to officially certify your badge. <a href="javascript:void(0)" onclick="showSection('booking')">Book Interview Now →</a></div>
+        </div>
+      </div>
+
+      <!-- Message 2: Interview Confirmed -->
+      <div class="message-banner msg-info" id="msg-booked" style="display:none;background:var(--primary-light);border-left:4px solid var(--primary);">
+        <div class="msg-icon">📅</div>
+        <div>
+          <div class="msg-title" id="bookedMsgTitle">Interview Confirmed</div>
+          <div id="bookedMsgBody">Scheduled with evaluator. <a href="javascript:void(0)" onclick="showCancelModal()">Manage booking →</a></div>
+        </div>
+      </div>
+
+      <!-- Message 3: Passed Badge Awarded -->
+      <div class="message-banner msg-success" id="msg-passed" style="display:none;">
+        <div class="msg-icon">🏆</div>
+        <div>
+          <div class="msg-title">Congratulations! You earned the Full Stack Development badge!</div>
+          <div id="passedMsgBody">You cleared your level clearance interview. Your badge has been certified in your NextWave profile.</div>
+        </div>
+      </div>
+
+      <!-- Result: Revision Needed -->
+      <div class="message-banner msg-danger" id="msg-failed" style="display:none;">
+        <div class="msg-icon">📋</div>
+        <div>
+          <div class="msg-title">Interview Result: Revision Needed</div>
+          <div>Review the feedback notes from your evaluator and book a retake when you're ready. <a href="javascript:void(0)" onclick="showSection('booking')">Book Retake →</a></div>
+        </div>
+      </div>
+
+      <!-- Malpractice Flagged -->
+      <div class="message-banner msg-danger" id="msg-flagged" style="display:none;">
+        <div class="msg-icon">⚠️</div>
+        <div>
+          <div class="msg-title">Badge Revoked — Malpractice Finding</div>
+          <div id="flaggedMsgBody">A review by the academic integrity board flagged your submission. Contact your campus coordinator.</div>
+        </div>
+      </div>
+
+      <!-- KPI Stats (Tapable Cards) -->
+      <div class="stats-row">
+        <div class="stat-card tapable" onclick="openStudentStatModal('enrolled')" title="Tap to view enrolled track details">
+          <div class="stat-label">Enrolled Tracks</div>
+          <div class="stat-value" id="statEnrolledTracks">0</div>
+          <div class="stat-sub" id="statEnrolledSub">Active skill tracks</div>
+          <div class="tap-hint">👆 Tap for details →</div>
+        </div>
+        <div class="stat-card tapable" onclick="openStudentStatModal('skills')" title="Tap to view contest skills matrix">
+          <div class="stat-label">Contest Skills Cleared</div>
+          <div class="stat-value" id="statSkillsCleared">0</div>
+          <div class="stat-sub" id="statSkillsClearedSub">No skills cleared yet</div>
+          <div class="tap-hint">👆 Tap for syllabus →</div>
+        </div>
+        <div class="stat-card tapable" onclick="openStudentStatModal('badges')" title="Tap to view certified digital credentials">
+          <div class="stat-label">Badges Certified</div>
+          <div class="stat-value" id="badgeCount" style="color:var(--gray-400);">0</div>
+          <div class="stat-sub" id="badgeSub">Requires interview clearance</div>
+          <div class="tap-hint">👆 Tap for credentials →</div>
+        </div>
+        <div class="stat-card tapable" id="interviewStatusCard" onclick="openStudentStatModal('status')" title="Tap to view appointment & clearance details">
+          <div class="stat-label">Clearance Status</div>
+          <div class="stat-value" id="interviewStatusValue" style="font-size:18px;color:var(--gray-400);">Not Enrolled</div>
+          <div class="stat-sub" id="interviewStatusSub">Enroll in a track to begin</div>
+          <div class="tap-hint">👆 Tap for appointment →</div>
+        </div>
+      </div>
+
+      <!-- Enrolled Tracks -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>My Enrolled Track Gateways</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Complete all prerequisite skill levels to unlock the live Level Clearance Interview.</p>
+          </div>
+          <button class="btn btn-sm btn-outline" onclick="showSection('explore')">+ Explore More Tracks</button>
+        </div>
+        <div class="card-body">
+          <div class="track-grid" id="myTracksGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 2: EXPLORE & ENROLL COURSES ============ -->
+    <div class="section" id="sec-explore">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Explore Course Categories & Tracks</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Browse tracks curated by the NextWave Academic Board. Enroll to start competing for Track Badges.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="track-grid" id="exploreTracksGrid">
+            <!-- Dynamically populated from getTracks() -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 3: BOOKING FLOW ============ -->
+    <div class="section" id="sec-booking">
+      <h1 style="font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;">Book Level Clearance Interview</h1>
+      <p style="color:var(--gray-500);margin-bottom:28px;">Select a 30-minute one-on-one session with a specialized faculty evaluator.</p>
+
+      <!-- 1. LOCKED GATE STATE (When Student Has Not Cleared All Contest Skills) -->
+      <div id="bookingLockedState" style="display:none;">
+        <div class="card">
+          <div class="card-body" style="text-align:center;padding:56px 24px;">
+            <div style="font-size:56px;margin-bottom:16px;">🔒</div>
+            <h2 style="font-size:22px;margin-bottom:8px;">Interview Booking Gate Locked</h2>
+            <p style="color:var(--gray-600);font-size:14.5px;max-width:540px;margin:0 auto 24px;line-height:1.6;">
+              You must clear all prerequisite skill contests for a track before scheduling your live Level Clearance Interview. Complete your contest skills in "My Tracks & Badges" or enroll in a track to unlock slot booking.
+            </p>
+            <div style="display:flex;justify-content:center;gap:12px;">
+              <button class="btn btn-primary" onclick="showSection('dashboard')">← Go to My Tracks & Contests</button>
+              <button class="btn btn-outline" onclick="showSection('explore')">Explore More Courses →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. UNLOCKED BOOKING STEPS WRAPPER -->
+      <div id="bookingStepsWrapper">
+        <div class="steps">
+          <div class="step active" id="step1"><div class="step-circle">1</div><span class="step-label">Select Slot</span></div>
+          <div class="step-line" id="stepLine1"></div>
+          <div class="step" id="step2"><div class="step-circle">2</div><span class="step-label">Review Details</span></div>
+          <div class="step-line" id="stepLine2"></div>
+          <div class="step" id="step3"><div class="step-circle">3</div><span class="step-label">Confirmed ✓</span></div>
+        </div>
+
+        <!-- Step 1: Slot selection -->
+        <div id="bookingStep1">
+          <!-- Domain Targeting Header -->
+          <div style="background:var(--primary-light);border:1px solid rgba(79,70,229,0.25);border-radius:16px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div style="width:44px;height:44px;border-radius:12px;background:white;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:var(--shadow-sm);">
+                <span id="bookingTrackIcon">🌐</span>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.8px;">Target Evaluation Track</div>
+                <div style="font-size:17px;font-weight:800;color:var(--gray-900);display:flex;align-items:center;gap:8px;margin-top:2px;">
+                  <span id="bookingTrackTitle">Full Stack Development</span>
+                  <span class="badge badge-purple" id="bookingTrackDomain" style="font-size:11.5px;">AI Product Mastery</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;" id="bookingTrackPills">
+              <!-- Dynamically populated if student has multiple eligible tracks -->
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Relevant Domain Evaluator Slots</h2>
+                <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Showing verified faculty evaluators specialized in this technical domain.</p>
+              </div>
+              <div class="filter-bar">
+                <select id="dateFilter" onchange="filterSlots()">
+                  <option value="all">All Available Dates</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="slot-grid" id="slotGrid">
+                <!-- Populated with domain-specific slots -->
+              </div>
+              <div style="margin-top:28px;display:flex;justify-content:flex-end;">
+                <button class="btn btn-primary btn-lg" id="confirmSlotBtn" disabled onclick="goToStep2()">Continue to Review →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Confirm -->
+        <div id="bookingStep2" style="display:none;">
+          <div class="card">
+            <div class="card-body" style="text-align:center;padding:48px 24px;">
+              <div style="font-size:52px;margin-bottom:18px;">📋</div>
+              <h2 style="margin-bottom:8px;">Review Interview Details</h2>
+              <p style="color:var(--gray-500);margin-bottom:28px;">Please review the appointment details before reserving your live level clearance defense.</p>
+              
+              <div style="background:var(--gray-50);border-radius:var(--radius-md);padding:26px;max-width:480px;margin:0 auto;text-align:left;border:1px solid var(--gray-200);">
+                <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                  <span style="color:var(--gray-500);font-size:14px;">Candidate</span>
+                  <span style="font-weight:700;" id="confirmStudentName">Student</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                  <span style="color:var(--gray-500);font-size:14px;">Target Track Badge</span>
+                  <span style="font-weight:700;" id="confirmTrackBadge">Full Stack Development</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                  <span style="color:var(--gray-500);font-size:14px;">Scheduled Date</span>
+                  <span style="font-weight:700;" id="confirmDate">Date</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                  <span style="color:var(--gray-500);font-size:14px;">Time Window</span>
+                  <span style="font-weight:700;" id="confirmTime">Time</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                  <span style="color:var(--gray-500);font-size:14px;">Assigned Evaluator</span>
+                  <span style="font-weight:700;" id="confirmInterviewer">Faculty Evaluator</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                  <span style="color:var(--gray-500);font-size:14px;">Evaluator Specialization</span>
+                  <span class="badge badge-purple" style="font-size:11px;" id="confirmInterviewerDomain">Domain</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="color:var(--gray-500);font-size:14px;">Evaluation Format</span>
+                  <span style="font-weight:700;">Live 1-on-1 Code Defense (30 Mins)</span>
+                </div>
+              </div>
+
+              <div style="margin-top:32px;display:flex;justify-content:center;gap:12px;">
+                <button class="btn btn-outline btn-lg" onclick="goToStep1()">← Change Slot</button>
+                <button class="btn btn-primary btn-lg" onclick="confirmBooking()">Confirm & Book Slot →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Success -->
+        <div id="bookingStep3" style="display:none;">
+          <div class="card">
+            <div class="card-body" style="text-align:center;padding:56px 24px;">
+              <div style="font-size:60px;margin-bottom:18px;">🎉</div>
+              <h2 style="font-size:24px;margin-bottom:8px;">Interview Slot Confirmed!</h2>
+              <p style="color:var(--gray-600);font-size:15px;max-width:520px;margin:0 auto 28px;" id="confirmedSuccessText">
+                Your live 1-on-1 code defense has been successfully scheduled with your assigned domain evaluator.
+              </p>
+              <div style="display:flex;justify-content:center;gap:14px;">
+                <button class="btn btn-primary" onclick="showSection('dashboard')">View Dashboard →</button>
+                <button class="btn btn-outline" onclick="showSection('comparison')">View Before vs After Result</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 4: BEFORE VS AFTER COMPARISON SHOWCASE ============ -->
+    <div class="section" id="sec-comparison">
+      <div class="card" style="margin-bottom:28px;">
+        <div class="card-header" style="flex-wrap:wrap;gap:16px;">
+          <div>
+            <h2 style="font-size:22px;letter-spacing:-0.4px;">Before vs After Level Clearance Result</h2>
+            <p style="font-size:13.5px;color:var(--gray-500);margin-top:2px;">Compare the complete candidate experience and dashboard transformation before and after the faculty evaluation decision.</p>
+          </div>
+
+          <!-- Interactive View Switcher Tabs -->
+          <div class="comp-pill-group">
+            <button class="comp-pill active" id="pillViewSideBySide" onclick="switchComparisonView('both')">↔️ Side-by-Side</button>
+            <button class="comp-pill" id="pillViewBefore" onclick="switchComparisonView('before')">⏱️ State A: Before Result</button>
+            <button class="comp-pill" id="pillViewAfter" onclick="switchComparisonView('after')">🏆 State B: Passed & Certified</button>
+            <button class="comp-pill" id="pillViewRetake" onclick="switchComparisonView('retake')">📋 State C: Revision Needed</button>
+          </div>
+        </div>
+
+        <!-- CERTIFICATE SEARCH & VERIFICATION BAR -->
+        <div style="padding:18px 28px 16px;background:#f8fafc;border-bottom:1px solid var(--gray-200);">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:18px;">🔍</span>
+              <div>
+                <strong style="font-size:13.5px;color:var(--gray-900);">Certificate Verification & Search</strong>
+                <span style="font-size:12px;color:var(--gray-500);margin-left:8px;">Search official NextWave verified digital certificates by Credential ID, student name, or technical track</span>
+              </div>
+            </div>
+            <span class="badge badge-green" style="font-size:11px;">✓ Official Verified Ledger</span>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;">
+            <div style="position:relative;flex:1;">
+              <input type="text" id="certSearchInput" class="form-input" 
+                     placeholder="Search certificate by Credential ID (e.g. NXW-CERT-2026-8899), Student Name, Track, or Evaluator..."
+                     oninput="handleCertificateSearch()" 
+                     style="padding-left:14px;padding-right:34px;font-size:13.5px;height:42px;background:white;">
+              <button id="clearCertSearchBtn" onclick="clearCertSearch()" 
+                      style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:14px;padding:4px;">✕</button>
+            </div>
+            <button class="btn btn-primary" onclick="handleCertificateSearch()" style="height:42px;padding:0 22px;white-space:nowrap;">
+              🔍 Search Certificate
+            </button>
+          </div>
+
+          <!-- Quick Search Filter Chips -->
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px;">
+            <span style="font-size:11.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;">Quick Filter:</span>
+            <button type="button" class="cert-filter-chip active" id="chipAllCerts" onclick="filterCertChip('all')">All Certificates</button>
+            <button type="button" class="cert-filter-chip" onclick="filterCertChip('NXW-CERT-2026-8899')">Full Stack · NXW-CERT-2026-8899</button>
+            <button type="button" class="cert-filter-chip" onclick="filterCertChip('NXW-CERT-2026-4105')">Data Analytics · NXW-CERT-2026-4105</button>
+            <button type="button" class="cert-filter-chip" onclick="filterCertChip('NXW-CERT-2026-2241')">Cloud DevOps · NXW-CERT-2026-2241</button>
+            <button type="button" class="cert-filter-chip" onclick="filterCertChip('NXW-CERT-2026-7731')">AI Models · NXW-CERT-2026-7731</button>
+          </div>
+        </div>
+
+        <!-- Search Results Banner (Shown when searching) -->
+        <div id="certSearchResultsContainer" style="display:none;padding:16px 28px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+          <div id="certSearchResultsList"></div>
+        </div>
+
+        <div class="card-body" style="padding:28px;">
+          <div class="before-after-grid" id="comparisonGrid">
+            
+            <!-- ================= STATE A: BEFORE RESULT ================= -->
+            <div class="screen-preview screen-preview-before" id="cardCompBefore">
+              <div class="screen-preview-header">
+                <div>
+                  <span class="preview-badge badge-before">STATE A · BEFORE INTERVIEW RESULT</span>
+                  <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Candidate In-Progress · Live Defense Scheduled</div>
+                </div>
+                <span class="badge badge-gray" style="font-size:12px;">Pre-Defense</span>
+              </div>
+              <div class="screen-preview-body">
+                <!-- Announcement Banner -->
+                <div class="mini-banner" style="background:#EEF2FF;border-left:4px solid var(--primary);color:#3730A3;">
+                  <span style="font-size:20px;">📅</span>
+                  <div>
+                    <strong>Interview Confirmed:</strong> Scheduled for 20 Nov 2026 at 10:00 AM with Dr. Kavita Rao.
+                    <div style="font-size:12px;color:#4F46E5;margin-top:2px;">Format: Live 1-on-1 Code Defense · AI Product Mastery</div>
+                  </div>
+                </div>
+
+                <!-- KPI Metrics -->
+                <div class="mini-kpi-row">
+                  <div class="mini-kpi">
+                    <span class="mini-kpi-label">Badges Certified</span>
+                    <span class="mini-kpi-val" style="color:var(--gray-400);">0 <span style="font-size:13px;font-weight:500;">(Pending)</span></span>
+                  </div>
+                  <div class="mini-kpi">
+                    <span class="mini-kpi-label">Clearance Status</span>
+                    <span class="mini-kpi-val" style="font-size:15px;color:var(--primary);margin-top:4px;">📅 Interview Booked</span>
+                  </div>
+                </div>
+
+                <!-- Track Gateway Card (Pre-Certification) -->
+                <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:14px;padding:18px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="font-size:24px;">🌐</span>
+                      <div>
+                        <div style="font-weight:700;font-size:14px;">Full Stack Development</div>
+                        <div style="font-size:11px;color:var(--gray-500);">AI Product Mastery</div>
+                      </div>
+                    </div>
+                    <span class="badge badge-purple" style="font-size:11px;">🎯 Gate Unlocked</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--gray-600);margin-bottom:10px;">
+                    All 6 prerequisite contest skills cleared. Awaiting live defense evaluation.
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                    <span class="tag" style="background:#ECFDF5;color:#047857;font-weight:600;">✓ UI Engineering</span>
+                    <span class="tag" style="background:#ECFDF5;color:#047857;font-weight:600;">✓ Server Architecture</span>
+                    <span class="tag" style="background:#ECFDF5;color:#047857;font-weight:600;">✓ SQL</span>
+                    <span class="tag" style="background:#ECFDF5;color:#047857;font-weight:600;">✓ Gen AI Engineering</span>
+                  </div>
+                </div>
+
+                <!-- 3-Axis Rubric Status (Pending) -->
+                <div class="rubric-meter">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:12px;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:0.5px;">Evaluator Defense Rubric</span>
+                    <span class="badge badge-gray" style="font-size:10.5px;">Pending Assessment</span>
+                  </div>
+                  <div class="rubric-item">
+                    <div class="rubric-head"><span>Code Quality & Architecture</span><span>--%</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+                  </div>
+                  <div class="rubric-item">
+                    <div class="rubric-head"><span>Live Defense & Problem Solving</span><span>--%</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+                  </div>
+                  <div class="rubric-item">
+                    <div class="rubric-head"><span>Communication & Systems Thinking</span><span>--%</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+                  </div>
+                </div>
+
+                <!-- Career Gateway Locked -->
+                <div style="background:var(--gray-100);border:1px dashed var(--gray-300);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:22px;">🔒</span>
+                  <div style="font-size:12.5px;color:var(--gray-600);line-height:1.4;">
+                    <strong>Hiring Gateway Locked:</strong> Verified Track Badge is required to unlock direct interview shortlists with partner tech employers.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ================= STATE B: AFTER RESULT (PASSED) ================= -->
+            <div class="screen-preview screen-preview-after" id="cardCompAfter">
+              <div class="screen-preview-header">
+                <div>
+                  <span class="preview-badge badge-after">STATE B · AFTER DEFENSE CLEARED (PASSED)</span>
+                  <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Official Qualiflyer · Badge Certified</div>
+                </div>
+                <span class="badge badge-green" style="font-size:12px;">🏆 Certified Qualiflyer</span>
+              </div>
+              <div class="screen-preview-body">
+                <!-- Announcement Banner -->
+                <div class="mini-banner" style="background:#ECFDF5;border-left:4px solid var(--success);color:#065F46;">
+                  <span style="font-size:20px;">🏆</span>
+                  <div>
+                    <strong>Congratulations! You earned the Full Stack Development Badge!</strong>
+                    <div style="font-size:12px;color:#047857;margin-top:2px;">Evaluated & Approved by Dr. Kavita Rao · Official Credential Issued</div>
+                  </div>
+                </div>
+
+                <!-- KPI Metrics -->
+                <div class="mini-kpi-row">
+                  <div class="mini-kpi" style="border-color:rgba(16,185,129,0.3);background:#F0FDF4;">
+                    <span class="mini-kpi-label" style="color:#047857;">Badges Certified</span>
+                    <span class="mini-kpi-val" style="color:var(--success);">1 🏅 <span style="font-size:12px;font-weight:600;">(Official)</span></span>
+                  </div>
+                  <div class="mini-kpi" style="border-color:rgba(16,185,129,0.3);background:#F0FDF4;">
+                    <span class="mini-kpi-label" style="color:#047857;">Clearance Status</span>
+                    <span class="mini-kpi-val" style="font-size:15px;color:var(--success-dark);margin-top:4px;">✅ PASSED ✓</span>
+                  </div>
+                </div>
+
+                <!-- Digital Credential Certificate -->
+                <div class="cert-card">
+                  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                    <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#F59E0B,#D97706);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 12px rgba(245,158,11,0.4);">
+                      🌐
+                    </div>
+                    <div>
+                      <div style="font-size:11px;font-weight:700;color:#FCD34D;letter-spacing:1px;text-transform:uppercase;">NextWave Verified Credential</div>
+                      <div id="certTrackTitle" style="font-size:18px;font-weight:800;color:white;">Full Stack Development</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#CBD5E1;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:6px;">
+                    <span>ID: <code id="certIdCode">NXW-CERT-2026-8899</code></span>
+                    <span id="certEndorsedStatus" style="color:#10B981;font-weight:700;">✓ Faculty Endorsed</span>
+                  </div>
+                </div>
+
+                <!-- 3-Axis Evaluator Scorecard -->
+                <div class="rubric-meter" style="background:#F0FDF4;border-color:rgba(16,185,129,0.3);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:12px;font-weight:700;color:#065F46;text-transform:uppercase;letter-spacing:0.5px;">Live Defense Scorecard</span>
+                    <span class="badge badge-green" id="certOverallBadge" style="font-size:10.5px;">Score: 94% · Grade A+</span>
+                  </div>
+                  <div class="rubric-item">
+                    <div class="rubric-head"><span>Code Quality & Architecture</span><span id="certScoreQuality" style="color:#047857;font-weight:700;">94% (Exceptional)</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillQuality" style="width:94%;background:#10B981;"></div></div>
+                  </div>
+                  <div class="rubric-item">
+                    <div class="rubric-head"><span>Live Defense & Problem Solving</span><span id="certScoreDefense" style="color:#047857;font-weight:700;">92% (High Mastery)</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillDefense" style="width:92%;background:#10B981;"></div></div>
+                  </div>
+                  <div class="rubric-item">
+                    <div class="rubric-head"><span>Communication & Systems Thinking</span><span id="certScoreComm" style="color:#047857;font-weight:700;">96% (Distinction)</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillComm" style="width:96%;background:#10B981;"></div></div>
+                  </div>
+                </div>
+
+                <!-- Evaluator Quote -->
+                <div style="background:white;border:1px solid #E2E8F0;border-left:3px solid #10B981;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--gray-700);line-height:1.5;">
+                  <em id="certEvaluatorQuote">"Candidate demonstrated deep comprehension of full stack microservices and live SQL optimization during the 30-minute code defense."</em>
+                  <div id="certEvaluatorName" style="font-weight:700;color:var(--gray-900);margin-top:4px;font-size:11.5px;">— Dr. Kavita Rao, Lead Technical Evaluator</div>
+                </div>
+
+                <!-- Career Gateway Unlocked -->
+                <div style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.1));border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:24px;">🚀</span>
+                  <div style="font-size:12.5px;color:#065F46;line-height:1.4;">
+                    <strong>Hiring Gateway Activated:</strong> Your certified track badge qualifies you for fast-track interview scheduling with 24+ NextWave partner tech employers!
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ================= STATE C: AFTER RESULT (RETAKE NEEDED) ================= -->
+            <div class="screen-preview screen-preview-retake" id="cardCompRetake" style="display:none;">
+              <div class="screen-preview-header">
+                <div>
+                  <span class="preview-badge badge-retake">STATE C · REVISION NEEDED (RETAKE OPTION)</span>
+                  <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Actionable Faculty Feedback · Retake Available</div>
+                </div>
+                <span class="badge badge-gray" style="font-size:12px;">Needs Revision</span>
+              </div>
+              <div class="screen-preview-body">
+                <!-- Announcement Banner -->
+                <div class="mini-banner" style="background:#FEF2F2;border-left:4px solid var(--danger);color:#991B1B;">
+                  <span style="font-size:20px;">📋</span>
+                  <div>
+                    <strong>Interview Result: Revision Needed</strong>
+                    <div style="font-size:12px;color:#B91C1C;margin-top:2px;">Review the faculty feedback notes below and schedule a retake code defense when ready.</div>
+                  </div>
+                </div>
+
+                <!-- Evaluator Feedback Notes -->
+                <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:14px;padding:18px;">
+                  <div style="font-size:13px;font-weight:700;color:var(--gray-900);margin-bottom:8px;">Evaluator Rubric Feedback:</div>
+                  <ul style="font-size:13px;color:var(--gray-700);line-height:1.6;padding-left:18px;">
+                    <li><strong>Database Indexing:</strong> Needs deeper understanding of composite indexing and execution explain plans.</li>
+                    <li><strong>Concurrency:</strong> Strengthen knowledge of race conditions and transactional rollback mechanics.</li>
+                  </ul>
+                </div>
+
+                <div style="text-align:center;margin-top:12px;">
+                  <button class="btn btn-primary" onclick="showSection('booking')">Book Retake Defense Slot →</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CANCEL BOOKING MODAL -->
+  <div class="modal-overlay" id="cancelModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Manage Clearance Booking</h3>
+        <button class="modal-close" onclick="closeCancelModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--gray-600);margin-bottom:20px;font-size:14px;">
+          Are you sure you want to cancel your scheduled Level Clearance Interview? Your slot will be released back to other candidates.
+        </p>
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+          <button class="btn btn-outline" onclick="closeCancelModal()">Keep Appointment</button>
+          <button class="btn btn-danger" onclick="cancelBooking()">Release Slot</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENT STAT DETAIL MODAL -->
+  <div class="modal-overlay" id="studentDetailModal">
+    <div class="modal" style="max-width:720px;">
+      <div class="modal-header">
+        <h3 id="studentDetailModalTitle">Metric Details</h3>
+        <button class="modal-close" onclick="closeStudentDetailModal()">✕</button>
+      </div>
+      <div class="modal-body" id="studentDetailModalBody">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Strict authentication: Only students are allowed in the student portal
+    const user = requireAuth('student');
+    if (!user) {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#64748b;">Redirecting to candidate sign-in...</div>';
+      throw new Error('Candidate authentication required');
+    }
+
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userMeta').textContent = user.niatId || 'Candidate';
+    document.getElementById('userAvatar').textContent = getInitials(user.name);
+    document.getElementById('confirmStudentName').textContent = user.name;
+    document.getElementById('heroGreeting').textContent = `👋 Welcome back, ${user.name}!`;
+
+    let studentDashboardData = {
+      booking: null,
+      badges: [],
+      enrollments: [],
+      enrolledTrackIds: []
+    };
+
+    function showSection(name) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      
+      const targetSec = document.getElementById('sec-' + name);
+      if (targetSec) targetSec.classList.add('active');
+
+      const links = document.querySelectorAll('.nav-link');
+      if (name === 'dashboard') {
+        links[0].classList.add('active');
+        loadLiveStudentState();
+      }
+      else if (name === 'explore') {
+        links[1].classList.add('active');
+        renderExploreTracks();
+      }
+      else if (name === 'booking') {
+        links[2].classList.add('active');
+        const enrollments = studentDashboardData.enrollments || [];
+        const isEligible = enrollments.some(e => e.isEligible);
+        const lockedEl = document.getElementById('bookingLockedState');
+        const wrapperEl = document.getElementById('bookingStepsWrapper');
+
+        if (!isEligible) {
+          if (lockedEl) lockedEl.style.display = 'block';
+          if (wrapperEl) wrapperEl.style.display = 'none';
+        } else {
+          if (lockedEl) lockedEl.style.display = 'none';
+          if (wrapperEl) wrapperEl.style.display = 'block';
+          loadBookingSlots();
+        }
+      }
+      else if (name === 'comparison') {
+        links[3].classList.add('active');
+      }
+    }
+
+    // ==========================================
+    // RENDER MY TRACKS
+    // ==========================================
+    function renderMyTracks() {
+      const enrollments = studentDashboardData.enrollments || [];
+      const grid = document.getElementById('myTracksGrid');
+      const booking = studentDashboardData.booking;
+      const badges = studentDashboardData.badges || [];
+      const status = booking ? booking.status : null;
+
+      if (enrollments.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;padding:48px 20px;">
+            <div class="empty-icon">📚</div>
+            <h3>You haven't enrolled in any tracks yet</h3>
+            <p>Explore the course categories catalog, enroll in a technical track, and start clearing contest skills to unlock your Level Clearance Interview.</p>
+            <button class="btn btn-primary" onclick="showSection('explore')" style="margin-top:16px;">
+              🚀 Explore Course Catalog & Enroll Now
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = enrollments.map(e => {
+        const totalSkills = e.skills && e.skills.length ? e.skills.length : 6;
+        const skillsCleared = e.skillsCleared || 0;
+        const percent = Math.min(100, Math.round((skillsCleared / totalSkills) * 100));
+        
+        const isThisTrackPassed = (booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (status === 'Passed' || status === 'Pass')) || badges.some(b => b.track_id === e.trackId || b.badge_name === e.trackTitle || b.track_id === e.id);
+        const isThisTrackBooked = !isThisTrackPassed && booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (status === 'Booked' || status === 'Confirmed');
+        const isThisTrackRetake = !isThisTrackPassed && booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (status === 'Failed' || status === 'Retake');
+        const isEligible = !isThisTrackPassed && !isThisTrackBooked && (e.isEligible || (skillsCleared >= totalSkills));
+
+        // Find next skill name to clear
+        const nextSkillIndex = skillsCleared;
+        const nextSkillName = (e.skills && e.skills[nextSkillIndex]) ? e.skills[nextSkillIndex] : 'Next Competency';
+
+        let actionHtml = '';
+        if (isThisTrackPassed) {
+          actionHtml = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
+              <span style="font-size:12px;font-weight:700;color:var(--success-dark);">✓ Verified Badge Awarded</span>
+              <button class="btn btn-sm btn-success" onclick="showSection('comparison')" style="background:var(--success);color:white;border:none;">View Certificate →</button>
+            </div>
+          `;
+        } else if (isThisTrackBooked) {
+          const bookedSchedule = formatInterviewSchedule(booking.interview_date, booking.start_time, booking.end_time);
+          actionHtml = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
+              <span style="font-size:12px;font-weight:700;color:var(--primary);">📅 Interview Booked (${bookedSchedule})</span>
+              <button class="btn btn-sm btn-outline" onclick="showCancelModal()">Manage Booking →</button>
+            </div>
+          `;
+        } else if (isThisTrackRetake) {
+          actionHtml = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
+              <span style="font-size:12px;font-weight:700;color:var(--danger);">📋 Revision Needed — Retake Available</span>
+              <button class="btn btn-sm btn-warning" onclick="showSection('booking')">Book Retake Slot →</button>
+            </div>
+          `;
+        } else if (isEligible) {
+          actionHtml = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
+              <span style="font-size:12px;font-weight:700;color:var(--success-dark);">🎯 All ${totalSkills} Skills Cleared!</span>
+              <button class="btn btn-sm btn-success" onclick="showSection('booking')">Book Interview Now →</button>
+            </div>
+          `;
+        } else {
+          actionHtml = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
+              <span style="font-size:12px;font-weight:600;color:var(--gray-500);">${skillsCleared}/${totalSkills} skills cleared</span>
+              <button class="btn btn-sm btn-primary" onclick="handleClearSkillContest('${e.trackId}')">
+                ⚡ Clear Contest Skill: "${nextSkillName}" →
+              </button>
+            </div>
+          `;
+        }
+
+        const skillBadges = (e.skills || []).map((sk, idx) => {
+          const isDone = idx < skillsCleared;
+          return `<span class="tag" style="${isDone ? 'background:var(--success-light);color:var(--success-dark);font-weight:700;' : 'opacity:0.6;'}">${isDone ? '✓ ' : ''}${sk}</span>`;
+        }).join('');
+
+        let badgeStatusClass = 'badge-gray';
+        let badgeStatusText = e.badgeTier || 'Novice';
+        if (isThisTrackPassed) {
+          badgeStatusClass = 'badge-green';
+          badgeStatusText = '🏆 Certified';
+        } else if (isThisTrackBooked) {
+          badgeStatusClass = 'badge-blue';
+          badgeStatusText = '📅 Scheduled';
+        } else if (isThisTrackRetake) {
+          badgeStatusClass = 'badge-yellow';
+          badgeStatusText = '📋 Retake';
+        } else if (isEligible) {
+          badgeStatusClass = 'badge-purple';
+          badgeStatusText = '🎯 Eligible';
+        }
+
+        return `
+          <div class="track-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:26px;">${e.trackIcon || '🌐'}</span>
+                <div>
+                  <div class="track-name" style="margin-bottom:0;">${e.trackTitle}</div>
+                  <span style="font-size:11.5px;color:var(--gray-500);font-weight:600;">${e.domain || ''}</span>
+                </div>
+              </div>
+              <span class="badge ${badgeStatusClass}">
+                ${badgeStatusText}
+              </span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;">
+              ${skillBadges}
+            </div>
+            <div style="margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gray-500);margin-bottom:4px;">
+                <span>Clearance Progress</span>
+                <strong>${percent}%</strong>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${percent}%;"></div></div>
+            </div>
+            ${actionHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleClearSkillContest(trackId) {
+      const res = await clearStudentSkill(user.email, trackId);
+      if (res.success) {
+        showToast(res.message, res.isEligible ? 'success' : 'info');
+        await loadLiveStudentState();
+      } else {
+        showToast(res.message || 'Could not record contest result', 'error');
+      }
+    }
+
+    // ==========================================
+    // EXPLORE & ENROLL TRACKS
+    // ==========================================
+    async function renderExploreTracks() {
+      const allTracks = await fetchTracksFromPg();
+      const myTrackIds = (studentDashboardData.enrollments || []).map(e => e.trackId);
+      const grid = document.getElementById('exploreTracksGrid');
+
+      grid.innerHTML = allTracks.map(t => {
+        const isEnrolled = myTrackIds.includes(t.id);
+        const isActive = t.isActive !== false;
+
+        return `
+          <div class="track-card ${isActive ? '' : 'is-disabled'}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:30px;">${t.icon}</span>
+                <div>
+                  <div class="track-name" style="margin-bottom:2px;">${t.name}</div>
+                  <span style="font-size:12px;color:var(--gray-500);font-weight:600;">${t.domain}</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                ${!isActive ? `<span class="badge badge-gray">Inactive</span>` : ''}
+                <span class="badge badge-purple">${t.badgeTier}</span>
+              </div>
+            </div>
+            <p style="font-size:13px;color:var(--gray-600);line-height:1.5;margin-bottom:14px;flex:1;">
+              ${t.description}
+            </p>
+            <div style="background:var(--gray-50);padding:12px;border-radius:10px;margin-bottom:14px;">
+              <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Skills Evaluated</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                ${t.skills.map(sk => `<span class="tag">${sk}</span>`).join('')}
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+              <span style="font-size:13px;color:var(--gray-500);">👥 ${t.enrolledCount || 0} enrolled</span>
+              ${isEnrolled ? 
+                `<span class="badge badge-green">✓ Enrolled</span>` : 
+                (!isActive ? 
+                  `<span class="badge badge-gray">Enrollment Closed</span>` : 
+                  `<button class="btn btn-sm btn-primary" onclick="handleEnroll('${t.id}')">Enroll in Track →</button>`
+                )
+              }
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleEnroll(trackId) {
+      await enrollStudentInTrack(user.email, trackId);
+      showToast('Enrolled in technical track successfully!', 'success');
+      await loadLiveStudentState();
+      await renderExploreTracks();
+      showSection('dashboard');
+    }
+
+    // ==========================================
+    // LOAD LIVE STUDENT STATE
+    // ==========================================
+    async function loadLiveStudentState() {
+      try {
+        const res = await fetch(API_BASE + '/student/dashboard/' + encodeURIComponent(user.email));
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            studentDashboardData = data;
+          }
+        }
+      } catch (e) {
+        console.warn('Dashboard API error, reading local cache');
+      }
+
+      // If enrollments is empty, also check local fallback
+      if (!studentDashboardData.enrollments || studentDashboardData.enrollments.length === 0) {
+        const localTrackIds = getEnrollments(user.email);
+        const allTracks = getTracks();
+        studentDashboardData.enrollments = localTrackIds.map(tid => {
+          const t = allTracks.find(x => x.id === tid) || {};
+          const isSeededEligible = ['aarav@niat.edu', 'priya@niat.edu', 'rohan@niat.edu', 'sneha@niat.edu'].includes(user.email.toLowerCase());
+          return {
+            trackId: tid,
+            skillsCleared: isSeededEligible ? 6 : 0,
+            isEligible: isSeededEligible,
+            trackTitle: t.name || 'Skill Track',
+            trackIcon: t.icon || '🚀',
+            badgeTier: t.badgeTier || 'Novice',
+            skills: t.skills || ['Core Skill 1', 'Core Skill 2', 'Core Skill 3'],
+            domain: t.domain || 'Engineering'
+          };
+        });
+        studentDashboardData.enrolledTrackIds = localTrackIds;
+      }
+
+      if (!studentDashboardData.booking) {
+        const pipeline = getPipeline();
+        studentDashboardData.booking = pipeline.find(p => (p.email && p.email.toLowerCase() === user.email.toLowerCase()) || p.name === user.name) || null;
+      }
+
+      const booking = studentDashboardData.booking;
+      const status = booking ? booking.status : null;
+      applyStateToUI(status, booking);
+      renderMyTracks();
+    }
+
+    function applyStateToUI(status, booking) {
+      // Hide all alert banners first
+      ['msg-not-enrolled', 'msg-in-progress', 'msg-eligible', 'msg-booked', 'msg-passed', 'msg-failed', 'msg-flagged'].forEach(m => {
+        const el = document.getElementById(m);
+        if (el) el.style.display = 'none';
+      });
+
+      const enrollments = studentDashboardData.enrollments || [];
+      const badges = studentDashboardData.badges || [];
+      const numEnrolled = enrollments.length;
+
+      // Calculate total skills cleared across all enrolled tracks
+      const totalSkillsCleared = enrollments.reduce((sum, e) => sum + (e.skillsCleared || 0), 0);
+      const isAnyEligible = enrollments.some(e => e.isEligible);
+      const primaryTrack = enrollments[0];
+
+      // Update KPI cards
+      document.getElementById('statEnrolledTracks').textContent = numEnrolled;
+      document.getElementById('statSkillsCleared').textContent = totalSkillsCleared;
+      
+      const skillsClearedSub = document.getElementById('statSkillsClearedSub');
+      if (skillsClearedSub) {
+        skillsClearedSub.textContent = numEnrolled > 0 ? (primaryTrack ? primaryTrack.trackTitle : 'Skill Tracks') : 'No skills cleared yet';
+      }
+
+      const bc = document.getElementById('badgeCount');
+      const bs = document.getElementById('badgeSub');
+      bc.textContent = badges.length;
+      if (badges.length > 0) {
+        bc.style.color = 'var(--success)';
+        bs.textContent = 'Certified NextWave Badges';
+      } else {
+        bc.style.color = 'var(--gray-400)';
+        bs.textContent = 'Requires interview clearance';
+      }
+
+      const sv = document.getElementById('interviewStatusValue');
+      const ss = document.getElementById('interviewStatusSub');
+
+      // STATE 1: NOT ENROLLED
+      if (numEnrolled === 0) {
+        document.getElementById('msg-not-enrolled').style.display = 'flex';
+        sv.textContent = 'Not Enrolled';
+        sv.style.color = 'var(--gray-400)';
+        ss.textContent = 'Enroll in a track to begin';
+        return;
+      }
+
+      // STATE 2: ENROLLED BUT NOT ELIGIBLE (Skills in progress)
+      if (!isAnyEligible && (!status || status === 'Not Booked')) {
+        document.getElementById('msg-in-progress').style.display = 'flex';
+        const inProgressTitle = document.getElementById('inProgressMsgTitle');
+        const inProgressBody = document.getElementById('inProgressMsgBody');
+        const trackTotalSkills = primaryTrack && primaryTrack.skills ? primaryTrack.skills.length : 6;
+        const trackCleared = primaryTrack ? (primaryTrack.skillsCleared || 0) : 0;
+        const trackName = primaryTrack ? primaryTrack.trackTitle : 'Enrolled Track';
+
+        if (inProgressTitle) {
+          inProgressTitle.textContent = `Contest Skills in Progress — ${trackName}`;
+        }
+        if (inProgressBody) {
+          inProgressBody.innerHTML = `You have completed <strong>${trackCleared} of ${trackTotalSkills}</strong> prerequisite skills for ${trackName}. Complete all skill levels in campus contests to unlock your live Level Clearance Interview.`;
+        }
+
+        sv.textContent = `⏳ ${trackCleared}/${trackTotalSkills} Skills`;
+        sv.style.color = 'var(--warning-dark)';
+        ss.textContent = `${trackName} in progress`;
+        return;
+      }
+
+      // STATE 3: PASSED
+      if (status === 'Passed' || status === 'Pass') {
+        const feedbackNotes = booking ? booking.notes : '';
+        const evaluatorName = (booking && booking.interviewer_name) ? booking.interviewer_name : 'Faculty Evaluator';
+        const trackTitle = (booking && booking.track_name) ? booking.track_name : (primaryTrack ? primaryTrack.trackTitle : 'Full Stack Development');
+
+        document.getElementById('msg-passed').style.display = 'flex';
+        const feedbackHtml = feedbackNotes ? `
+          <div style="margin-top:8px;padding:8px 14px;background:#f0fdf4;border-left:3px solid var(--success);border-radius:6px;font-size:13px;color:#166534;">
+            <strong>Faculty Feedback:</strong> "<em>${escapeHtml(feedbackNotes)}</em>"
+            <span style="font-size:11.5px;color:var(--gray-600);margin-left:6px;">— ${escapeHtml(evaluatorName)}, Lead Technical Evaluator</span>
+          </div>
+        ` : '';
+        document.getElementById('passedMsgBody').innerHTML = `You cleared your level clearance interview. Your badge has been certified in your NextWave profile.${feedbackHtml}`;
+        
+        sv.textContent = '🏆 Badge Earned!';
+        sv.style.color = 'var(--success)';
+        ss.textContent = `${trackTitle} Certified`;
+        bc.textContent = Math.max(badges.length, 1);
+        bc.style.color = 'var(--success)';
+        bs.textContent = trackTitle;
+
+        // DYNAMICALLY POPULATE STATE B (AFTER DEFENSE CLEARED) IN BEFORE VS AFTER RESULT
+        const quoteEl = document.getElementById('certEvaluatorQuote');
+        if (quoteEl) quoteEl.textContent = feedbackNotes ? `"${feedbackNotes}"` : '"Candidate demonstrated solid technical understanding."';
+        
+        const nameEl = document.getElementById('certEvaluatorName');
+        if (nameEl) nameEl.textContent = `— ${evaluatorName}, Lead Technical Evaluator`;
+
+        const titleEl = document.getElementById('certTrackTitle');
+        if (titleEl) titleEl.textContent = trackTitle;
+
+        const myBadge = badges.find(b => b.track_id === (booking ? booking.track_id : '') || b.badge_name === trackTitle);
+        const credId = (myBadge && myBadge.credential_id) || (booking && booking.credential_id) || 'NXW-CERT-2026-LIVE';
+        const idEl = document.getElementById('certIdCode');
+        if (idEl) idEl.textContent = credId;
+
+        // Prepend student's verified certificate to the CERTIFICATE_LEDGER
+        const existingCert = CERTIFICATE_LEDGER.find(c => c.studentName === user.name || (user.email && c.studentEmail === user.email));
+        if (!existingCert) {
+          CERTIFICATE_LEDGER.unshift({
+            id: credId,
+            studentName: user.name,
+            studentEmail: user.email,
+            studentId: user.niatId || 'NIAT-ST',
+            trackTitle: trackTitle,
+            trackIcon: '🌐',
+            domain: (primaryTrack && primaryTrack.domain) || 'Full Stack',
+            evaluator: evaluatorName,
+            evaluatorRole: 'Lead Technical Evaluator',
+            evaluatorQuote: feedbackNotes || 'Candidate demonstrated solid technical understanding during code defense.',
+            issuedDate: formatDisplayDate(booking ? booking.interview_date : null, 'short') || 'Nov 13, 2026',
+            overallScore: 95,
+            grade: 'A+',
+            scores: {
+              quality: { score: 95, label: '95% (Exceptional)' },
+              defense: { score: 94, label: '94% (High Mastery)' },
+              comm: { score: 96, label: '96% (Distinction)' }
+            }
+          });
+        } else {
+          if (feedbackNotes) existingCert.evaluatorQuote = feedbackNotes;
+          if (evaluatorName) existingCert.evaluator = evaluatorName;
+          if (credId) existingCert.id = credId;
+        }
+
+        return;
+      }
+
+      // STATE 4: BOOKED
+      if (status === 'Booked') {
+        const rawDate = booking ? (booking.interview_date || booking.date) : 'Upcoming';
+        const rawStart = booking ? (booking.start_time || booking.time) : '';
+        const rawEnd = booking ? (booking.end_time || '') : '';
+        
+        const dateWeekday = formatDisplayDate(rawDate, 'weekday');
+        const fullSchedule = formatInterviewSchedule(rawDate, rawStart, rawEnd);
+        const invStr = booking && booking.interviewer_name && booking.interviewer_name !== '—'
+          ? `with <strong>${booking.interviewer_name}</strong>`
+          : 'with Faculty Evaluator';
+        const trkName = booking ? booking.track_name : (primaryTrack ? primaryTrack.trackTitle : 'Full Stack Development');
+        
+        document.getElementById('bookedMsgTitle').textContent = `Interview Confirmed — ${trkName} (${dateWeekday})`;
+        document.getElementById('bookedMsgBody').innerHTML = `📅 Scheduled for <strong>${fullSchedule}</strong> ${invStr}. <a href="javascript:void(0)" onclick="showCancelModal()" style="font-weight:700;margin-left:6px;">Manage booking →</a>`;
+        document.getElementById('msg-booked').style.display = 'flex';
+
+        sv.textContent = '📅 Interview Booked';
+        sv.style.color = 'var(--primary)';
+        ss.textContent = fullSchedule;
+        return;
+      }
+
+      // STATE 5: FAILED / RETAKE
+      if (status === 'Failed' || status === 'Retake') {
+        const feedbackNotes = booking ? booking.notes : '';
+        const evaluatorName = (booking && booking.interviewer_name) ? booking.interviewer_name : 'Faculty Evaluator';
+        document.getElementById('msg-failed').style.display = 'flex';
+        const retakeFeedback = feedbackNotes ? `
+          <div style="margin-top:8px;padding:8px 14px;background:#fef2f2;border-left:3px solid var(--danger);border-radius:6px;font-size:13px;color:#991b1b;">
+            <strong>Evaluator Feedback:</strong> "<em>${escapeHtml(feedbackNotes)}</em>"
+            <span style="font-size:11.5px;color:var(--gray-600);margin-left:6px;">— ${escapeHtml(evaluatorName)}, Faculty Evaluator</span>
+          </div>
+        ` : '';
+        const failedBody = document.querySelector('#msg-failed > div > div:last-child');
+        if (failedBody) {
+          failedBody.innerHTML = `Review the feedback notes from your evaluator and book a retake when you're ready. <a href="javascript:void(0)" onclick="showSection('booking')">Book Retake →</a>${retakeFeedback}`;
+        }
+        sv.textContent = '📋 Retake Available';
+        sv.style.color = 'var(--danger)';
+        ss.textContent = 'Book retake when ready';
+        return;
+      }
+
+      // STATE 6: FLAGGED
+      if (status === 'Flagged') {
+        document.getElementById('msg-flagged').style.display = 'flex';
+        sv.textContent = '🚩 Badge Revoked';
+        sv.style.color = 'var(--danger)';
+        ss.textContent = 'Malpractice review finding';
+        return;
+      }
+
+      // STATE 7: ELIGIBLE TO BOOK (All skills cleared, Not Booked)
+      if (isAnyEligible) {
+        document.getElementById('msg-eligible').style.display = 'flex';
+        const eligibleTitle = document.querySelector('#msg-eligible .msg-title');
+        const eligibleBody = document.querySelector('#msg-eligible > div > div:last-child');
+        
+        if (booking && booking.notes && booking.notes.includes('removed')) {
+          if (eligibleTitle) eligibleTitle.textContent = '⚠️ Re-booking Required — Previous Evaluator Removed';
+          if (eligibleBody) {
+            eligibleBody.innerHTML = `Your previous interview appointment was cancelled because the assigned evaluator is no longer on the faculty roster. Please select an available faculty evaluator to book a new slot. <a href="javascript:void(0)" onclick="showSection('booking')">Book New Slot Now →</a>`;
+          }
+        } else {
+          if (eligibleTitle) eligibleTitle.textContent = 'Level Clearance Interview Required';
+          if (eligibleBody) {
+            eligibleBody.innerHTML = `You've cleared all 6 skills for <strong>${primaryTrack ? primaryTrack.trackTitle : 'Full Stack Development'}</strong>. Book your interview slot to officially certify your badge. <a href="javascript:void(0)" onclick="showSection('booking')">Book Interview Now →</a>`;
+          }
+        }
+
+        sv.textContent = '📅 Eligible to Book';
+        sv.style.color = 'var(--primary)';
+        ss.textContent = `${primaryTrack ? primaryTrack.trackTitle : 'Track'} Clearance`;
+      }
+    }
+
+    // ==========================================
+    // COMPARISON VIEW SWITCHER
+    // ==========================================
+    function switchComparisonView(view) {
+      const pills = {
+        both: document.getElementById('pillViewSideBySide'),
+        before: document.getElementById('pillViewBefore'),
+        after: document.getElementById('pillViewAfter'),
+        retake: document.getElementById('pillViewRetake')
+      };
+      Object.keys(pills).forEach(k => {
+        if (pills[k]) pills[k].classList.toggle('active', k === view);
+      });
+
+      const cardBefore = document.getElementById('cardCompBefore');
+      const cardAfter = document.getElementById('cardCompAfter');
+      const cardRetake = document.getElementById('cardCompRetake');
+      const grid = document.getElementById('comparisonGrid');
+
+      if (view === 'both') {
+        grid.style.gridTemplateColumns = '1fr 1fr';
+        if (cardBefore) cardBefore.style.display = 'flex';
+        if (cardAfter) cardAfter.style.display = 'flex';
+        if (cardRetake) cardRetake.style.display = 'none';
+      } else if (view === 'before') {
+        grid.style.gridTemplateColumns = '1fr';
+        if (cardBefore) cardBefore.style.display = 'flex';
+        if (cardAfter) cardAfter.style.display = 'none';
+        if (cardRetake) cardRetake.style.display = 'none';
+      } else if (view === 'after') {
+        grid.style.gridTemplateColumns = '1fr';
+        if (cardBefore) cardBefore.style.display = 'none';
+        if (cardAfter) cardAfter.style.display = 'flex';
+        if (cardRetake) cardRetake.style.display = 'none';
+      } else if (view === 'retake') {
+        grid.style.gridTemplateColumns = '1fr';
+        if (cardBefore) cardBefore.style.display = 'none';
+        if (cardAfter) cardAfter.style.display = 'none';
+        if (cardRetake) cardRetake.style.display = 'flex';
+      }
+    }
+
+    // ==========================================
+    // STUDENT DASHBOARD TAPABLE STAT MODALS
+    // ==========================================
+    function closeStudentDetailModal() {
+      const modal = document.getElementById('studentDetailModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    function openStudentStatModal(type) {
+      const modal = document.getElementById('studentDetailModal');
+      const titleEl = document.getElementById('studentDetailModalTitle');
+      const bodyEl = document.getElementById('studentDetailModalBody');
+      if (!modal || !titleEl || !bodyEl) return;
+
+      const enrollments = studentDashboardData.enrollments || [];
+      const badges = studentDashboardData.badges || [];
+      const booking = studentDashboardData.booking || null;
+      const status = booking ? booking.status : null;
+
+      let title = '';
+      let content = '';
+
+      if (type === 'enrolled') {
+        title = '📚 My Enrolled Track Gateways';
+        if (enrollments.length === 0) {
+          content = `
+            <div style="text-align:center;padding:32px 16px;">
+              <div style="font-size:48px;margin-bottom:12px;">📚</div>
+              <h4 style="font-size:17px;font-weight:700;margin-bottom:8px;">No Tracks Enrolled Yet</h4>
+              <p style="color:var(--gray-600);font-size:13.5px;max-width:440px;margin:0 auto 20px;line-height:1.5;">
+                Explore the NextWave course catalog to enroll in high-impact engineering tracks, begin clearing prerequisite skill contests, and unlock live level clearance defenses.
+              </p>
+              <button class="btn btn-primary" onclick="closeStudentDetailModal();showSection('explore');">
+                Explore Course Categories →
+              </button>
+            </div>
+          `;
+        } else {
+          content = `
+            <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+              You are actively enrolled in <strong>${enrollments.length} track${enrollments.length > 1 ? 's' : ''}</strong>. Complete all prerequisite contest skills to qualify for the live Level Clearance Interview.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:12px;max-height:380px;overflow-y:auto;">
+              ${enrollments.map(e => {
+                const cleared = e.skillsCleared || 0;
+                const total = (e.skills && Array.isArray(e.skills)) ? e.skills.length : 6;
+                const pct = Math.round((cleared / total) * 100);
+
+                const isThisTrackPassed = (booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (booking.status === 'Passed' || booking.status === 'Pass')) || badges.some(b => b.track_id === e.trackId || b.badge_name === e.trackTitle || b.track_id === e.id);
+                const isThisTrackBooked = !isThisTrackPassed && booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (booking.status === 'Booked' || booking.status === 'Confirmed');
+                const isThisTrackRetake = !isThisTrackPassed && booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (booking.status === 'Failed' || booking.status === 'Retake');
+                const isEligible = !isThisTrackPassed && !isThisTrackBooked && !isThisTrackRetake && (e.isEligible || (cleared >= total));
+
+                let badgeHtml = `<span class="badge badge-yellow">${cleared}/${total} Skills</span>`;
+                let btnHtml = `
+                  <button class="btn btn-sm btn-outline" onclick="closeStudentDetailModal();showSection('dashboard');">
+                    Solve Contest Skills →
+                  </button>
+                `;
+                let progressDesc = `${pct}% (${cleared}/${total} Cleared)`;
+
+                if (isThisTrackPassed) {
+                  badgeHtml = `<span class="badge badge-green">🏆 Badge Certified</span>`;
+                  progressDesc = `100% (${total}/${total} Cleared) · Live Defense Passed ✓`;
+                  btnHtml = `
+                    <button class="btn btn-sm btn-success" onclick="closeStudentDetailModal();showSection('comparison');" style="background:var(--success);color:white;border:none;">
+                      View Verified Credential →
+                    </button>
+                  `;
+                } else if (isThisTrackBooked) {
+                  const bookedSchedule = formatInterviewSchedule(booking.interview_date, booking.start_time, booking.end_time);
+                  badgeHtml = `<span class="badge badge-blue">📅 Defense Booked</span>`;
+                  progressDesc = `Scheduled on ${bookedSchedule} with ${booking.interviewer_name || 'Evaluator'}`;
+                  btnHtml = `
+                    <button class="btn btn-sm btn-primary" onclick="closeStudentDetailModal();showCancelModal();">
+                      Manage Appointment →
+                    </button>
+                  `;
+                } else if (isThisTrackRetake) {
+                  badgeHtml = `<span class="badge badge-yellow">📋 Retake Available</span>`;
+                  progressDesc = `Revision needed · Retake clearance slot available`;
+                  btnHtml = `
+                    <button class="btn btn-sm btn-warning" onclick="closeStudentDetailModal();showSection('booking');">
+                      Book Retake Slot →
+                    </button>
+                  `;
+                } else if (isEligible) {
+                  badgeHtml = `<span class="badge badge-green">✓ Eligible to Book</span>`;
+                  progressDesc = `100% (${cleared}/${total} Cleared) · Gate Unlocked`;
+                  btnHtml = `
+                    <button class="btn btn-sm btn-primary" onclick="closeStudentDetailModal();showSection('booking');">
+                      Book Live Defense →
+                    </button>
+                  `;
+                }
+
+                return `
+                  <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:12px;padding:16px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:24px;">${e.trackIcon || '💻'}</span>
+                        <div>
+                          <div style="font-weight:800;font-size:15px;color:var(--gray-900);">${e.trackTitle}</div>
+                          <div style="font-size:12px;color:var(--gray-500);">${e.domain || 'Engineering Track'} · ${e.badgeTier || 'Track Badge'}</div>
+                        </div>
+                      </div>
+                      ${badgeHtml}
+                    </div>
+                    <div style="margin:10px 0;">
+                      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--gray-600);">
+                        <span>Contest Progress</span>
+                        <strong>${progressDesc}</strong>
+                      </div>
+                      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${isThisTrackPassed ? 100 : pct}%;"></div></div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+                      ${btnHtml}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div style="margin-top:16px;text-align:right;">
+              <button class="btn btn-sm btn-outline" onclick="closeStudentDetailModal();showSection('explore');">+ Explore More Tracks</button>
+            </div>
+          `;
+        }
+      } else if (type === 'skills') {
+        title = '⚡ Contest Skills Mastery Matrix';
+        const totalSkillsCleared = enrollments.reduce((acc, e) => acc + (e.skillsCleared || 0), 0);
+        content = `
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--primary-light);border:1px solid rgba(79,70,229,0.2);padding:14px 18px;border-radius:12px;margin-bottom:16px;">
+            <div>
+              <div style="font-size:11px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;">Cumulative Contest Mastery</div>
+              <div style="font-size:18px;font-weight:800;color:var(--primary-dark);">${totalSkillsCleared} Skill Contests Cleared</div>
+            </div>
+            <span class="badge badge-primary">6 Prerequisite Skills Per Track</span>
+          </div>
+          <div style="max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
+            ${enrollments.length === 0 ? `
+              <div style="text-align:center;padding:24px;color:var(--gray-500);">
+                Enroll in a track to unlock contest skill syllabus.
+              </div>
+            ` : enrollments.map(e => {
+              const skillsList = Array.isArray(e.skills) && e.skills.length > 0 ? e.skills : [
+                'Frontend Component Architecture & Lifecycle',
+                'State Management & Asynchronous Data',
+                'RESTful & GraphQL API Integrations',
+                'Relational Database Indexing & Tuning',
+                'OAuth2, JWT & Secure Session Guarding',
+                'Containerization & Cloud Production Setup'
+              ];
+              const clearedCount = e.skillsCleared || 0;
+              return `
+                <div style="border:1px solid var(--gray-200);border-radius:12px;padding:16px;background:white;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <div style="font-weight:800;font-size:14.5px;color:var(--gray-900);">
+                      ${e.trackIcon || '💻'} ${e.trackTitle}
+                    </div>
+                    <span class="badge ${clearedCount === skillsList.length ? 'badge-green' : 'badge-yellow'}">
+                      ${clearedCount}/${skillsList.length} Skills Cleared
+                    </span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr;gap:6px;">
+                    ${skillsList.map((sk, idx) => {
+                      const isDone = idx < clearedCount;
+                      return `
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:${isDone ? '#f0fdf4' : 'var(--gray-50)'};border:1px solid ${isDone ? '#bbf7d0' : 'var(--gray-200)'};">
+                          <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:14px;color:${isDone ? '#15803d' : 'var(--gray-400)'};">${isDone ? '✓' : '○'}</span>
+                            <span style="font-size:13px;font-weight:${isDone ? '600' : '400'};color:${isDone ? '#166534' : 'var(--gray-700)'};">${sk}</span>
+                          </div>
+                          <span style="font-size:11px;font-weight:700;color:${isDone ? '#15803d' : 'var(--gray-400)'};">
+                            ${isDone ? 'PASSED' : 'PENDING'}
+                          </span>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      } else if (type === 'badges') {
+        title = '🏆 Certified Badges & Digital Credentials';
+        if (badges.length === 0) {
+          content = `
+            <div style="text-align:center;padding:32px 16px;">
+              <div style="font-size:48px;margin-bottom:12px;">🏅</div>
+              <h4 style="font-size:17px;font-weight:700;margin-bottom:8px;">0 Badges Certified (Clearance Required)</h4>
+              <p style="color:var(--gray-600);font-size:13.5px;max-width:440px;margin:0 auto 20px;line-height:1.5;">
+                Track Badges are official credentials certified by NextWave faculty evaluators after you pass the live 30-minute level defense.
+              </p>
+              <div style="display:flex;justify-content:center;gap:12px;">
+                <button class="btn btn-primary" onclick="closeStudentDetailModal();showSection('booking');">
+                  Book Clearance Interview →
+                </button>
+                <button class="btn btn-outline" onclick="closeStudentDetailModal();showSection('comparison');">
+                  View Sample Certificate →
+                </button>
+              </div>
+            </div>
+          `;
+        } else {
+          content = `
+            <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+              You have earned <strong>${badges.length} verified track badge${badges.length > 1 ? 's' : ''}</strong> endorsed by NextWave faculty.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:12px;max-height:380px;overflow-y:auto;">
+              ${badges.map(b => `
+                <div style="background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%);color:white;border-radius:14px;padding:18px 20px;box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                      <span style="font-size:28px;">🏅</span>
+                      <div>
+                        <div style="font-size:16px;font-weight:800;color:white;">${b.badge_name || b.track_id}</div>
+                        <div style="font-size:12px;color:#94a3b8;">Issued on ${formatDisplayDate(b.awarded_at, 'short')}</div>
+                      </div>
+                    </div>
+                    <span class="badge badge-green" style="font-size:11px;">✓ VERIFIED</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;margin-top:8px;font-size:12px;color:#cbd5e1;">
+                    <span>Credential: <code style="color:#67e8f9;">${b.credential_id || 'NXW-CERT-2026-LIVE'}</code></span>
+                    <button class="btn btn-xs" onclick="closeStudentDetailModal();showSection('comparison');filterCertChip('${b.credential_id || 'NXW-CERT-2026-8899'}');" style="background:#4f46e5;color:#ffffff !important;border:none;font-weight:700;padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(79,70,229,0.5);">
+                      Inspect Certificate →
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      } else if (type === 'status') {
+        title = '📅 Clearance Status & Appointment Dossier';
+        if (booking && (booking.status === 'Booked' || booking.status === 'Confirmed')) {
+          const rawDate = booking.interview_date || booking.date;
+          const formattedDate = formatDisplayDate(rawDate, 'weekday');
+          const formattedTime = formatDisplayTime(booking.start_time || booking.time, booking.end_time);
+          content = `
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:20px;margin-bottom:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span class="badge badge-green" style="font-size:12px;">📅 Confirmed Live Defense</span>
+                <span style="font-size:12px;color:var(--gray-600);">Status: Reserved</span>
+              </div>
+              <h3 style="font-size:18px;font-weight:800;color:#166534;margin-bottom:6px;">
+                ${booking.track_name || 'Full Stack Development'} Level Clearance
+              </h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;background:white;border-radius:10px;padding:14px;border:1px solid #e2e8f0;">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;">Interview Date</div>
+                  <div style="font-size:14px;font-weight:700;color:var(--gray-900);">${formattedDate}</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;">Time Slot</div>
+                  <div style="font-size:14px;font-weight:700;color:var(--gray-900);">${formattedTime}</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;">Assigned Evaluator</div>
+                  <div style="font-size:14px;font-weight:700;color:var(--gray-900);">${booking.interviewer_name || 'Faculty Evaluator'}</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;">Defense Venue</div>
+                  <div style="font-size:14px;font-weight:700;color:var(--primary);">NextWave Live Video Room #04</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="closeStudentDetailModal();showCancelModal();">Cancel Appointment</button>
+                <button class="btn btn-sm btn-primary" onclick="closeStudentDetailModal();showToast('Opening virtual defense room...', 'info');">Join Virtual Defense →</button>
+              </div>
+            </div>
+          `;
+        } else {
+          const isAnyEligible = enrollments.some(e => e.isEligible);
+          content = `
+            <div style="padding:24px 16px;text-align:center;">
+              <div style="font-size:48px;margin-bottom:12px;">${isAnyEligible ? '🎯' : '⏳'}</div>
+              <h4 style="font-size:18px;font-weight:700;margin-bottom:6px;">
+                ${isAnyEligible ? 'Level Clearance Interview Required' : 'Skill Contests In Progress'}
+              </h4>
+              <p style="color:var(--gray-600);font-size:14px;max-width:440px;margin:0 auto 20px;line-height:1.5;">
+                ${isAnyEligible 
+                  ? 'You have cleared all contest prerequisite skills for your track. You are officially qualified to book your live 1-on-1 level defense.' 
+                  : 'Complete all 6 contest skills in your enrolled tracks to unlock the live level defense slot booking gate.'}
+              </p>
+              <div style="display:flex;justify-content:center;gap:12px;">
+                ${isAnyEligible ? `
+                  <button class="btn btn-primary" onclick="closeStudentDetailModal();showSection('booking');">
+                    Book Live Defense Slot Now →
+                  </button>
+                ` : `
+                  <button class="btn btn-primary" onclick="closeStudentDetailModal();showSection('dashboard');">
+                    Complete Contest Skills →
+                  </button>
+                  <button class="btn btn-outline" onclick="closeStudentDetailModal();showSection('explore');">
+                    Explore More Tracks →
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      titleEl.textContent = title;
+      bodyEl.innerHTML = content;
+      modal.classList.add('active');
+    }
+
+    // ==========================================
+    // CERTIFICATE VERIFICATION & SEARCH ENGINE
+    // ==========================================
+    const CERTIFICATE_LEDGER = [
+      {
+        id: 'NXW-CERT-2026-8899',
+        studentName: 'Rohan Verma',
+        studentId: 'NIAT2024-0104',
+        trackTitle: 'Full Stack Development',
+        trackIcon: '🌐',
+        domain: 'Full Stack',
+        evaluator: 'Dr. Anand Varma',
+        evaluatorRole: 'Lead Technical Evaluator & Systems Architect',
+        evaluatorQuote: 'Candidate demonstrated deep comprehension of full stack microservices, distributed caching, and live SQL optimization during the 30-minute code defense.',
+        issuedDate: 'Nov 12, 2026',
+        overallScore: 94,
+        grade: 'A+',
+        scores: {
+          quality: { score: 94, label: '94% (Exceptional)' },
+          defense: { score: 92, label: '92% (High Mastery)' },
+          comm: { score: 96, label: '96% (Distinction)' }
+        }
+      },
+      {
+        id: 'NXW-CERT-2026-4105',
+        studentName: 'Ananya Sen',
+        studentId: 'NIAT2024-0089',
+        trackTitle: 'Data Analytics & Big Data',
+        trackIcon: '📊',
+        domain: 'Data Engineering',
+        evaluator: 'Dr. Kavita Rao',
+        evaluatorRole: 'Director of AI & Data Evaluation',
+        evaluatorQuote: 'Outstanding performance in complex ETL pipeline modeling and Apache Spark query tuning under pressure.',
+        issuedDate: 'Nov 10, 2026',
+        overallScore: 96,
+        grade: 'A+',
+        scores: {
+          quality: { score: 96, label: '96% (Distinction)' },
+          defense: { score: 95, label: '95% (Exceptional)' },
+          comm: { score: 97, label: '97% (Outstanding)' }
+        }
+      },
+      {
+        id: 'NXW-CERT-2026-2241',
+        studentName: 'Siddharth Nair',
+        studentId: 'NIAT2024-0155',
+        trackTitle: 'Cloud & DevOps Engineering',
+        trackIcon: '☁️',
+        domain: 'Cloud Infrastructure',
+        evaluator: 'Dr. Rajesh Mehta',
+        evaluatorRole: 'Senior Cloud Solutions Evaluator',
+        evaluatorQuote: 'Demonstrated complete command over Kubernetes ingress routing, Terraform IAC modules, and blue-green deployments.',
+        issuedDate: 'Nov 08, 2026',
+        overallScore: 91,
+        grade: 'A',
+        scores: {
+          quality: { score: 90, label: '90% (Proficient)' },
+          defense: { score: 92, label: '92% (High Mastery)' },
+          comm: { score: 91, label: '91% (Proficient)' }
+        }
+      },
+      {
+        id: 'NXW-CERT-2026-7731',
+        studentName: 'Pooja Reddy',
+        studentId: 'NIAT2024-0210',
+        trackTitle: 'AI & Machine Learning Systems',
+        trackIcon: '🤖',
+        domain: 'AI Systems',
+        evaluator: 'Dr. Anand Varma',
+        evaluatorRole: 'Lead Technical Evaluator & Systems Architect',
+        evaluatorQuote: 'Flawless mathematical defense of gradient descent adaptations and production model quantization on edge GPUs.',
+        issuedDate: 'Nov 05, 2026',
+        overallScore: 98,
+        grade: 'A+',
+        scores: {
+          quality: { score: 98, label: '98% (Distinction)' },
+          defense: { score: 97, label: '97% (Exceptional)' },
+          comm: { score: 99, label: '99% (Mastery)' }
+        }
+      }
+    ];
+
+    function handleCertificateSearch() {
+      const inputEl = document.getElementById('certSearchInput');
+      const query = (inputEl ? inputEl.value : '').trim().toLowerCase();
+      const clearBtn = document.getElementById('clearCertSearchBtn');
+      if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
+
+      const container = document.getElementById('certSearchResultsContainer');
+      const listEl = document.getElementById('certSearchResultsList');
+      if (!container || !listEl) return;
+
+      if (!query) {
+        container.style.display = 'none';
+        return;
+      }
+
+      const results = CERTIFICATE_LEDGER.filter(c => 
+        c.id.toLowerCase().includes(query) ||
+        c.studentName.toLowerCase().includes(query) ||
+        c.studentId.toLowerCase().includes(query) ||
+        c.trackTitle.toLowerCase().includes(query) ||
+        c.evaluator.toLowerCase().includes(query) ||
+        c.domain.toLowerCase().includes(query)
+      );
+
+      container.style.display = 'block';
+
+      if (results.length === 0) {
+        listEl.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+            <div style="display:flex;align-items:center;gap:10px;color:var(--gray-700);font-size:13.5px;">
+              <span>🔍</span>
+              <span>No verified credentials found matching "<strong>${escapeHtml(query)}</strong>". Try searching by ID (e.g. <code>NXW-CERT-2026-8899</code>) or student name.</span>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="clearCertSearch()">Clear Search</button>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:700;color:#065F46;">
+            Found ${results.length} verified credential${results.length > 1 ? 's' : ''} matching "${escapeHtml(query)}"
+          </div>
+          <button class="btn btn-xs btn-outline" onclick="clearCertSearch()" style="font-size:11.5px;padding:3px 10px;">Clear</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
+          ${results.map(c => `
+            <div class="cert-result-card" onclick="viewCertificateInStateB('${c.id}')" title="Click to inspect verified credential in State B" style="background:white;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:11px;font-weight:800;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:6px;font-family:monospace;">${c.id}</span>
+                <span style="font-size:11px;color:var(--gray-500);">${c.issuedDate}</span>
+              </div>
+              <div style="font-weight:800;font-size:14px;color:var(--gray-900);margin-bottom:2px;">
+                ${c.trackIcon} ${c.trackTitle}
+              </div>
+              <div style="font-size:12px;color:var(--gray-600);margin-bottom:8px;">
+                Candidate: <strong>${c.studentName}</strong> (${c.studentId})
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f1f5f9;padding-top:8px;font-size:11.5px;">
+                <span style="color:#047857;font-weight:700;">Score: ${c.overallScore}% · Grade ${c.grade}</span>
+                <span style="color:var(--primary);font-weight:700;">Inspect Credential →</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function filterCertChip(certId) {
+      const chips = document.querySelectorAll('.cert-filter-chip');
+      chips.forEach(c => c.classList.remove('active'));
+
+      if (certId === 'all') {
+        const allChip = document.getElementById('chipAllCerts');
+        if (allChip) allChip.classList.add('active');
+        const inputEl = document.getElementById('certSearchInput');
+        if (inputEl) inputEl.value = '';
+        const container = document.getElementById('certSearchResultsContainer');
+        const listEl = document.getElementById('certSearchResultsList');
+        if (!container || !listEl) return;
+        container.style.display = 'block';
+        listEl.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:13px;font-weight:700;color:#065F46;">
+              All Verified Official NextWave Credentials (${CERTIFICATE_LEDGER.length})
+            </div>
+            <button class="btn btn-xs btn-outline" onclick="clearCertSearch()" style="font-size:11.5px;padding:3px 10px;">Close Ledger</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
+            ${CERTIFICATE_LEDGER.map(c => `
+              <div class="cert-result-card" onclick="viewCertificateInStateB('${c.id}')" title="Click to inspect verified credential in State B" style="background:white;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <span style="font-size:11px;font-weight:800;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:6px;font-family:monospace;">${c.id}</span>
+                  <span style="font-size:11px;color:var(--gray-500);">${c.issuedDate}</span>
+                </div>
+                <div style="font-weight:800;font-size:14px;color:var(--gray-900);margin-bottom:2px;">
+                  ${c.trackIcon} ${c.trackTitle}
+                </div>
+                <div style="font-size:12px;color:var(--gray-600);margin-bottom:8px;">
+                  Candidate: <strong>${c.studentName}</strong> (${c.studentId})
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f1f5f9;padding-top:8px;font-size:11.5px;">
+                  <span style="color:#047857;font-weight:700;">Score: ${c.overallScore}% · Grade ${c.grade}</span>
+                  <span style="color:var(--primary);font-weight:700;">Inspect Credential →</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        return;
+      }
+
+      chips.forEach(c => {
+        if (c.textContent.includes(certId)) c.classList.add('active');
+      });
+
+      const input = document.getElementById('certSearchInput');
+      if (input) {
+        input.value = certId;
+        handleCertificateSearch();
+      }
+    }
+
+    function clearCertSearch() {
+      const input = document.getElementById('certSearchInput');
+      if (input) input.value = '';
+      const container = document.getElementById('certSearchResultsContainer');
+      if (container) container.style.display = 'none';
+      const clearBtn = document.getElementById('clearCertSearchBtn');
+      if (clearBtn) clearBtn.style.display = 'none';
+      document.querySelectorAll('.cert-filter-chip').forEach(c => c.classList.remove('active'));
+    }
+
+    function viewCertificateInStateB(certId) {
+      const cert = CERTIFICATE_LEDGER.find(c => c.id === certId);
+      if (!cert) return;
+
+      switchComparisonView('both');
+
+      const titleEl = document.getElementById('certTrackTitle');
+      if (titleEl) titleEl.textContent = cert.trackTitle;
+
+      const idEl = document.getElementById('certIdCode');
+      if (idEl) idEl.textContent = cert.id;
+
+      const badgeEl = document.getElementById('certOverallBadge');
+      if (badgeEl) badgeEl.textContent = `Score: ${cert.overallScore}% · Grade ${cert.grade}`;
+
+      const qualEl = document.getElementById('certScoreQuality');
+      if (qualEl) qualEl.textContent = cert.scores.quality.label;
+      const qualFill = document.getElementById('certFillQuality');
+      if (qualFill) qualFill.style.width = cert.scores.quality.score + '%';
+
+      const defEl = document.getElementById('certScoreDefense');
+      if (defEl) defEl.textContent = cert.scores.defense.label;
+      const defFill = document.getElementById('certFillDefense');
+      if (defFill) defFill.style.width = cert.scores.defense.score + '%';
+
+      const commEl = document.getElementById('certScoreComm');
+      if (commEl) commEl.textContent = cert.scores.comm.label;
+      const commFill = document.getElementById('certFillComm');
+      if (commFill) commFill.style.width = cert.scores.comm.score + '%';
+
+      const quoteEl = document.getElementById('certEvaluatorQuote');
+      if (quoteEl) quoteEl.textContent = `"${cert.evaluatorQuote}"`;
+
+      const nameEl = document.getElementById('certEvaluatorName');
+      if (nameEl) nameEl.textContent = `— ${cert.evaluator}, ${cert.evaluatorRole}`;
+
+      const cardAfter = document.getElementById('cardCompAfter');
+      if (cardAfter) {
+        cardAfter.style.transition = 'all 0.3s ease';
+        cardAfter.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.4)';
+        setTimeout(() => {
+          cardAfter.style.boxShadow = '';
+        }, 1800);
+        cardAfter.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      showToast(`Loaded verified credential ${cert.id} (${cert.trackTitle})`, 'success');
+    }
+
+    // ==========================================
+    // RELEVANT DOMAIN SLOTS & BOOKING LOGIC
+    // ==========================================
+    let selectedSlotId = null;
+    let liveSlots = [];
+    let selectedBookingTrackId = null;
+
+    function getActiveBookingTrack() {
+      const enrollments = studentDashboardData.enrollments || [];
+      const eligible = enrollments.filter(e => e.isEligible);
+      if (selectedBookingTrackId) {
+        const found = enrollments.find(e => e.trackId === selectedBookingTrackId);
+        if (found) return found;
+      }
+      return eligible[0] || enrollments[0] || {
+        trackId: 'track-fs',
+        trackTitle: 'Full Stack Development',
+        domain: 'AI Product Mastery',
+        trackIcon: '🌐'
+      };
+    }
+
+    function switchBookingTrack(trackId) {
+      selectedBookingTrackId = trackId;
+      loadBookingSlots();
+    }
+
+    async function loadBookingSlots() {
+      selectedSlotId = null;
+      document.getElementById('bookingStep1').style.display = 'block';
+      document.getElementById('bookingStep2').style.display = 'none';
+      document.getElementById('bookingStep3').style.display = 'none';
+      document.getElementById('step1').className = 'step active';
+      document.getElementById('stepLine1').className = 'step-line';
+      document.getElementById('step2').className = 'step';
+      document.getElementById('stepLine2').className = 'step-line';
+      document.getElementById('step3').className = 'step';
+      document.getElementById('confirmSlotBtn').disabled = true;
+
+      const currentTrack = getActiveBookingTrack();
+      const trackTitleEl = document.getElementById('bookingTrackTitle');
+      const trackDomainEl = document.getElementById('bookingTrackDomain');
+      const trackIconEl = document.getElementById('bookingTrackIcon');
+      if (trackTitleEl) trackTitleEl.textContent = currentTrack.trackTitle || 'Technical Track';
+      if (trackDomainEl) trackDomainEl.textContent = currentTrack.domain || 'Engineering';
+      if (trackIconEl) trackIconEl.textContent = currentTrack.trackIcon || '🌐';
+
+      // Populate multiple eligible track switchers if applicable
+      const enrollments = studentDashboardData.enrollments || [];
+      const eligibleTracks = enrollments.filter(e => e.isEligible);
+      const pillsContainer = document.getElementById('bookingTrackPills');
+      if (pillsContainer) {
+        if (eligibleTracks.length > 1) {
+          pillsContainer.innerHTML = eligibleTracks.map(t => `
+            <button class="btn btn-sm ${t.trackId === currentTrack.trackId ? 'btn-primary' : 'btn-outline'}" 
+                    onclick="switchBookingTrack('${t.trackId}')">
+              ${t.trackIcon || ''} ${t.trackTitle}
+            </button>
+          `).join('');
+        } else {
+          pillsContainer.innerHTML = '';
+        }
+      }
+
+      // Query slots strictly filtered to relevant domain / track specialization
+      const filterTarget = currentTrack.trackTitle || currentTrack.domain;
+      const allSlots = await fetchSlotsFromPg(null, filterTarget);
+
+      // Client-side domain match safeguard: only keep slots from interviewers who specialize in this track or domain
+      const targetLower = (filterTarget || '').toLowerCase();
+      const trackDomainLower = (currentTrack.domain || '').toLowerCase();
+
+      liveSlots = allSlots.filter(s => {
+        const slotDomain = (s.domain || '').toLowerCase();
+        const intSpecialization = (s.interviewer_domain || s.domain_specialization || '').toLowerCase();
+        return slotDomain.includes(targetLower) ||
+               slotDomain.includes(trackDomainLower) ||
+               intSpecialization.includes(targetLower) ||
+               intSpecialization.includes(trackDomainLower);
+      });
+
+      const dateSelect = document.getElementById('dateFilter');
+      const uniqueDates = [...new Set(liveSlots.map(s => s.slot_date || s.date))];
+      
+      dateSelect.innerHTML = '<option value="all">All Available Dates (' + liveSlots.length + ' Slots)</option>' + 
+        uniqueDates.map(d => `<option value="${d}">${d}</option>`).join('');
+
+      renderSlots('all');
+    }
+
+    function renderSlots(filter) {
+      const grid = document.getElementById('slotGrid');
+      const currentTrack = getActiveBookingTrack();
+      const filtered = filter === 'all' ? liveSlots : liveSlots.filter(s => (s.slot_date || s.date) === filter);
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;padding:48px 24px;">
+            <div class="empty-icon">👨‍🏫</div>
+            <h3 style="font-size:18px;margin-bottom:6px;">No Evaluator Slots Found for ${currentTrack.trackTitle}</h3>
+            <p style="color:var(--gray-500);max-width:480px;margin:0 auto 16px;font-size:13.5px;">
+              Only faculty evaluators specializing in <strong>${currentTrack.trackTitle}</strong> (${currentTrack.domain}) are authorized to evaluate this defense. Evaluators will publish open availability windows shortly.
+            </p>
+            <button class="btn btn-outline" onclick="loadBookingSlots()">↻ Refresh Relevant Evaluators</button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(s => {
+        const isBooked = s.is_booked || s.booked;
+        const slotDate = formatDisplayDate(s.slot_date || s.dateLabel || s.date, 'weekday');
+        const slotTime = formatDisplayTime(s.start_time || s.time, s.end_time);
+        const interviewer = s.interviewer_name || s.interviewer;
+        const isSelected = selectedSlotId === s.id;
+        const specDisplay = s.interviewer_domain || s.domain || currentTrack.trackTitle;
+
+        return `
+          <div class="slot-card ${isBooked ? 'booked' : ''} ${isSelected ? 'selected' : ''}" 
+               onclick="${isBooked ? '' : 'selectSlot(\'' + s.id + '\')'}"
+               style="border-radius:14px;padding:18px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div class="slot-date" style="font-size:14px;font-weight:700;">${slotDate}</div>
+              ${isBooked ? '<span class="badge badge-gray">Reserved</span>' : 
+                isSelected ? '<span class="badge badge-purple">✓ Selected</span>' : 
+                '<span class="badge badge-green">Available</span>'}
+            </div>
+            <div class="slot-time" style="font-size:16px;font-weight:800;color:var(--gray-900);margin:6px 0 10px;">${slotTime}</div>
+            
+            <div style="border-top:1px solid var(--gray-200);padding-top:10px;margin-top:6px;">
+              <div style="font-size:13px;font-weight:700;color:var(--gray-800);display:flex;align-items:center;gap:6px;">
+                <span>👨‍🏫</span> ${interviewer}
+              </div>
+              <div class="slot-domain-badge">
+                <span>🎯</span> ${specDisplay}
+              </div>
+              <div style="font-size:11.5px;color:var(--gray-500);margin-top:8px;">
+                Live 1-on-1 Code Defense · 30 Mins
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectSlot(id) {
+      selectedSlotId = id;
+      renderSlots(document.getElementById('dateFilter').value);
+      document.getElementById('confirmSlotBtn').disabled = false;
+    }
+
+    function filterSlots() {
+      renderSlots(document.getElementById('dateFilter').value);
+    }
+
+    function goToStep2() {
+      if (!selectedSlotId) return;
+      const slot = liveSlots.find(s => s.id === selectedSlotId);
+      if (!slot || slot.is_booked || slot.booked) {
+        showToast('This slot is no longer available.', 'error');
+        renderSlots('all');
+        return;
+      }
+
+      const currentTrack = getActiveBookingTrack();
+      document.getElementById('confirmDate').textContent = formatDisplayDate(slot.slot_date || slot.dateLabel || slot.date, 'long');
+      document.getElementById('confirmTime').textContent = formatDisplayTime(slot.start_time || slot.time, slot.end_time);
+      document.getElementById('confirmInterviewer').textContent = slot.interviewer_name || slot.interviewer;
+      document.getElementById('confirmTrackBadge').textContent = currentTrack.trackTitle;
+      
+      const specEl = document.getElementById('confirmInterviewerDomain');
+      if (specEl) {
+        specEl.textContent = slot.interviewer_domain || slot.domain || currentTrack.domain || 'Engineering';
+      }
+
+      document.getElementById('bookingStep1').style.display = 'none';
+      document.getElementById('bookingStep2').style.display = 'block';
+      document.getElementById('step1').className = 'step done';
+      document.getElementById('stepLine1').className = 'step-line done';
+      document.getElementById('step2').className = 'step active';
+    }
+
+    function goToStep1() {
+      document.getElementById('bookingStep1').style.display = 'block';
+      document.getElementById('bookingStep2').style.display = 'none';
+      document.getElementById('step1').className = 'step active';
+      document.getElementById('stepLine1').className = 'step-line';
+      document.getElementById('step2').className = 'step';
+    }
+
+    async function confirmBooking() {
+      const slot = liveSlots.find(s => s.id === selectedSlotId);
+      const currentTrack = getActiveBookingTrack();
+      const rawDate = slot ? (slot.slot_date || slot.dateLabel || slot.date) : 'Upcoming';
+      const cleanDate = typeof rawDate === 'string' && rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
+      const cleanStart = slot ? (formatDisplayTime(slot.start_time || slot.time).split('–')[0].trim()) : '10:00 AM';
+      const cleanEnd = slot ? (formatDisplayTime(slot.end_time).split('–')[0].trim() || '10:45 AM') : '10:45 AM';
+
+      const bookingData = {
+        studentName: user.name,
+        studentEmail: user.email,
+        studentId: user.niatId || 'NIAT-ST',
+        trackId: currentTrack.trackId || 'track-fs',
+        trackName: currentTrack.trackTitle || 'Full Stack Development',
+        slotId: selectedSlotId,
+        interviewerName: slot ? (slot.interviewer_name || slot.interviewer) : 'Faculty Evaluator',
+        interviewerEmail: slot ? (slot.interviewer_email || slot.email || '') : '',
+        interviewDate: cleanDate,
+        startTime: cleanStart,
+        endTime: cleanEnd
+      };
+
+      try {
+        const res = await fetch(API_BASE + '/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bookingData)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          showToast(data.message || 'This slot is no longer available. Please select another slot.', 'error');
+          goToStep1();
+          await loadBookingSlots();
+          return;
+        }
+      } catch (e) {
+        console.warn('Booking API offline:', e);
+      }
+
+      document.getElementById('bookingStep2').style.display = 'none';
+      document.getElementById('bookingStep3').style.display = 'block';
+      document.getElementById('step2').className = 'step done';
+      document.getElementById('stepLine2').className = 'step-line done';
+      document.getElementById('step3').className = 'step done';
+
+      document.getElementById('confirmedSuccessText').textContent = 
+        `${bookingData.interviewDate} at ${bookingData.startTime} with ${bookingData.interviewerName}. Your 1-on-1 live code defense has been confirmed.`;
+
+      showToast('Clearance interview slot confirmed successfully!', 'success');
+      loadLiveStudentState();
+    }
+
+    // Cancel Booking
+    function showCancelModal() { document.getElementById('cancelModal').classList.add('active'); }
+    function closeCancelModal() { document.getElementById('cancelModal').classList.remove('active'); }
+
+    async function cancelBooking() {
+      closeCancelModal();
+
+      try {
+        await fetch(API_BASE + '/bookings/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentEmail: user.email })
+        });
+      } catch (e) {
+        console.warn('Cancel API offline');
+      }
+
+      showToast('Interview appointment cancelled. Slot released back to pool.', 'info');
+      await loadLiveStudentState();
+    }
+
+    // Initial Load
+    loadLiveStudentState();
+  </script>
+</body>
+</html>

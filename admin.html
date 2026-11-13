@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin & Operations Console — NextWave</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- TOP NAVIGATION -->
+  <nav class="top-nav">
+    <div class="logo" onclick="window.location.href='admin.html'">
+      NextWave <span class="tagline">Admin & Operations</span>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="showAdminSection('pipeline')">Pipeline Management</button>
+      <button class="nav-link" onclick="showAdminSection('tracks')">Track Categories</button>
+      <button class="nav-link" onclick="showAdminSection('interviewers')">Interviewer Capacity</button>
+      <button class="nav-link" onclick="showAdminSection('users')">User Accounts</button>
+      <button class="nav-link" onclick="showAdminSection('audit')">Audit & Malpractice Log</button>
+    </div>
+    <div class="user-info">
+      <div class="user-details">
+        <div class="user-name" id="adminName">Campus Admin</div>
+        <div class="user-role">Program Operations</div>
+      </div>
+      <div class="user-avatar" style="background:var(--dark);">AD</div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="main">
+
+    <!-- ============ SECTION 1: PIPELINE MANAGEMENT (ADMIN DASHBOARD) ============ -->
+    <div class="section active" id="sec-pipeline">
+
+      <!-- KPI STATS (ONLY ON DASHBOARD) -->
+      <div class="stats-row">
+        <div class="stat-card tapable" onclick="openAdminStatModal('eligible')" title="Tap to view eligible candidate breakdown">
+          <div class="stat-label">Eligible Students</div>
+          <div class="stat-value" id="statEligibleTotal">0</div>
+          <div class="stat-sub">Cleared prerequisite skills</div>
+          <div class="tap-hint">👆 Tap for details →</div>
+        </div>
+        <div class="stat-card tapable" onclick="openAdminStatModal('reserved')" title="Tap to filter booked candidate slots">
+          <div class="stat-label">Slots Reserved</div>
+          <div class="stat-value" style="color:var(--primary);" id="statBookedTotal">0</div>
+          <div class="stat-sub" id="statBookedPercent">0% conversion rate</div>
+          <div class="tap-hint">👆 Tap to view bookings →</div>
+        </div>
+        <div class="stat-card tapable" onclick="openAdminStatModal('pending')" title="Tap to filter unbooked candidates">
+          <div class="stat-label">Pending Action</div>
+          <div class="stat-value" style="color:var(--warning);" id="statUnbookedTotal">0</div>
+          <div class="stat-sub">Not yet booked</div>
+          <div class="tap-hint">👆 Tap to take action →</div>
+        </div>
+        <div class="stat-card tapable" onclick="openAdminStatModal('badges')" title="Tap to view certified badge holders">
+          <div class="stat-label">Badges Awarded</div>
+          <div class="stat-value" style="color:var(--success);" id="statBadgesTotal">0</div>
+          <div class="stat-sub">Certified NextWave Badges</div>
+          <div class="tap-hint">👆 Tap for credentials →</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Candidate Clearance Pipeline</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Track candidates across booking, live code defenses, and official badge awards.</p>
+          </div>
+          <div class="filter-bar">
+            <!-- Search Candidates Input -->
+            <input type="text" id="pipelineSearchInput" class="form-input" placeholder="🔍 Search by name, email, ID..." oninput="renderAdminPipeline()" style="width:230px;padding:8px 14px;">
+            
+            <!-- Track Filter Dropdown -->
+            <select id="trackFilter" onchange="renderAdminPipeline()">
+              <option value="all">All Tracks</option>
+            </select>
+
+            <!-- Status Filter Dropdown -->
+            <select id="statusFilter" onchange="renderAdminPipeline()">
+              <option value="all">All Statuses</option>
+              <option value="Not Booked">Not Booked</option>
+              <option value="Booked">Booked</option>
+              <option value="Passed">Passed</option>
+              <option value="Failed">Failed</option>
+              <option value="Retake">Retake</option>
+              <option value="Flagged">Flagged</option>
+            </select>
+
+            <button class="btn btn-sm btn-outline" onclick="bulkRemindUnbooked()">📩 Remind Unbooked</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Track Badge</th>
+                  <th>Status</th>
+                  <th>Interview Date</th>
+                  <th>Assigned Evaluator</th>
+                  <th>Attempt</th>
+                  <th>Administrative Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pipelineTableBody">
+                <!-- Dynamically rendered from PostgreSQL -->
+              </tbody>
+            </table>
+          </div>
+          <div id="pipelineEmpty" class="empty-state" style="display:none;">
+            <div class="empty-icon">👥</div>
+            <h3>No candidates matching search or filter</h3>
+            <p>Try modifying your search query or switching filter options.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 2: TRACK & COURSE CATEGORIES ============ -->
+    <div class="section" id="sec-tracks">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Track & Course Categories Catalog</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Manage tracks, edit details, toggle availability, or remove categories from the student catalog.</p>
+          </div>
+          <div class="filter-bar">
+            <!-- Search Tracks Input -->
+            <input type="text" id="trackSearchInput" class="form-input" placeholder="🔍 Search track name, domain, skills..." oninput="renderAdminTracks()" style="width:260px;padding:8px 14px;">
+            
+            <!-- Track Status Filter -->
+            <select id="trackStatusFilter" onchange="renderAdminTracks()">
+              <option value="all">All Track Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="disabled">Disabled Only</option>
+            </select>
+
+            <button class="btn btn-sm btn-primary" onclick="openAddTrackModal()">+ Add New Track Category</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="track-grid" id="adminTracksGrid">
+            <!-- Dynamically populated from PostgreSQL -->
+          </div>
+          <div id="tracksEmpty" class="empty-state" style="display:none;">
+            <div class="empty-icon">📚</div>
+            <h3>No course categories found</h3>
+            <p>Try adjusting your search keywords or status filter.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 3: INTERVIEWER ROSTER & MULTIPLE DOMAINS ============ -->
+    <div class="section" id="sec-interviewers">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Faculty Interviewers & Domain Allocation</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Manage evaluator capacity, multiple domain specializations, block/unblock access, or remove evaluators.</p>
+          </div>
+          <div class="filter-bar">
+            <!-- Search Interviewer Input -->
+            <input type="text" id="interviewerSearchInput" class="form-input" placeholder="🔍 Search evaluator name, domain, email..." oninput="renderInterviewerRoster()" style="width:270px;padding:8px 14px;">
+            
+            <button class="btn btn-sm btn-primary" onclick="openAddInterviewerModal()">+ Register New Interviewer</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Evaluator</th>
+                  <th>Email</th>
+                  <th>Specialized Technical Tracks</th>
+                  <th>Status</th>
+                  <th>Capacity</th>
+                  <th>Administrative Actions</th>
+                </tr>
+              </thead>
+              <tbody id="interviewerRosterBody">
+                <!-- Dynamically populated from PostgreSQL -->
+              </tbody>
+            </table>
+          </div>
+          <div id="interviewersEmpty" class="empty-state" style="display:none;">
+            <div class="empty-icon">👨‍🏫</div>
+            <h3>No interviewers match your search</h3>
+            <p>Try searching for a different evaluator name or domain specialization.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 4: AUDIT LOG & MALPRACTICE ============ -->
+    <div class="section" id="sec-audit">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Malpractice & Integrity Audit Log</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Permanent record of badge revocations, unauthorized assistance flags, and academic integrity actions.</p>
+          </div>
+          <div class="filter-bar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="auditSearchInput" class="form-input" 
+                   placeholder="🔍 Search candidate name, ID, track, finding..." 
+                   oninput="renderAuditLog()" style="width:260px;padding:8px 14px;">
+            <select id="auditTrackFilter" onchange="renderAuditLog()">
+              <option value="all">All Tracks</option>
+            </select>
+            <select id="auditActionFilter" onchange="renderAuditLog()">
+              <option value="all">All Integrity Actions</option>
+              <option value="Revoked">Badge Revoked</option>
+              <option value="Suspended">Defense Suspended</option>
+              <option value="Warning">Warning Issued</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student Candidate</th>
+                  <th>Track</th>
+                  <th>Finding & Reason</th>
+                  <th>Date Flagged</th>
+                  <th>Integrity Action</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+          <div id="auditEmpty" class="empty-state" style="display:none;padding:32px 16px;">
+            <div class="empty-icon">🛡️</div>
+            <h3>No audit records match your search</h3>
+            <p>Try searching for a different candidate name, track, or integrity finding.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 5: REGISTERED USER ACCOUNTS ============ -->
+    <div class="section" id="sec-users">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Registered User Accounts Directory</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-top:2px;">Live NextWave directory. Search, inspect credentials, and manage block or remove permissions.</p>
+          </div>
+          <div class="filter-bar">
+            <!-- Search Users Input -->
+            <input type="text" id="userSearchInput" class="form-input" placeholder="🔍 Search name, email, ID, domain..." oninput="renderAdminUsers()" style="width:260px;padding:8px 14px;">
+            
+            <!-- Role Filter Dropdown -->
+            <select id="userRoleFilter" onchange="renderAdminUsers()">
+              <option value="all">All Roles</option>
+              <option value="student">Students</option>
+              <option value="interviewer">Faculty Interviewers</option>
+              <option value="admin">Administrators</option>
+            </select>
+
+            <!-- Status Filter Dropdown -->
+            <select id="userStatusFilter" onchange="renderAdminUsers()">
+              <option value="all">All Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="blocked">Blocked Only</option>
+            </select>
+
+            <span id="userCountBadge" class="badge badge-purple" style="font-size:12px;padding:7px 14px;">0 Accounts</span>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>User Details</th>
+                  <th>System Role</th>
+                  <th>Identifier / Specialization</th>
+                  <th>Account Status</th>
+                  <th>Member Since</th>
+                  <th>Administrative Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <!-- Dynamically populated from PostgreSQL -->
+              </tbody>
+            </table>
+          </div>
+          <div id="usersEmpty" class="empty-state" style="display:none;">
+            <div class="empty-icon">👥</div>
+            <h3>No user accounts found</h3>
+            <p>Try modifying your search query or role/status filters.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ADD TRACK MODAL -->
+  <div class="modal-overlay" id="addTrackModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Create New Track Category</h3>
+        <button class="modal-close" onclick="closeAddTrackModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="addTrackForm" onsubmit="handleCreateTrack(event)">
+          <div class="form-group">
+            <label class="form-label">Track Title</label>
+            <input type="text" class="form-input" id="newTrackName" placeholder="e.g. Cyber Security & Cloud Defense" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Domain Area</label>
+            <input type="text" class="form-input" id="newTrackDomain" placeholder="e.g. Security & Infrastructure" required>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label">Badge Tier</label>
+              <select class="form-input" id="newTrackTier" required>
+                <option value="Novice">Novice</option>
+                <option value="Specialist" selected>Specialist</option>
+                <option value="Expert">Expert</option>
+                <option value="Grand Master">Grand Master</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Badge Icon (Emoji)</label>
+              <input type="text" class="form-input" id="newTrackIcon" value="🛡️" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Course Description</label>
+            <textarea class="form-input" id="newTrackDesc" style="height:70px;resize:vertical;" placeholder="Comprehensive summary of engineering competencies covered..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prerequisite Skills (Comma-separated)</label>
+            <input type="text" class="form-input" id="newTrackSkills" placeholder="e.g. Network Security, Cryptography, Cloud IAM, Penetration Testing" required>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:flex-end;">
+            <button type="button" class="btn btn-outline" onclick="closeAddTrackModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Publish Track Category</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT TRACK MODAL -->
+  <div class="modal-overlay" id="editTrackModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Track Category</h3>
+        <button class="modal-close" onclick="closeEditTrackModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="editTrackForm" onsubmit="handleUpdateTrack(event)">
+          <input type="hidden" id="editTrackId">
+          <div class="form-group">
+            <label class="form-label">Track Title</label>
+            <input type="text" class="form-input" id="editTrackName" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Domain Area</label>
+            <input type="text" class="form-input" id="editTrackDomain" required>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label">Badge Tier</label>
+              <select class="form-input" id="editTrackTier" required>
+                <option value="Novice">Novice</option>
+                <option value="Specialist">Specialist</option>
+                <option value="Expert">Expert</option>
+                <option value="Grand Master">Grand Master</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Badge Icon (Emoji)</label>
+              <input type="text" class="form-input" id="editTrackIcon" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Course Description</label>
+            <textarea class="form-input" id="editTrackDesc" style="height:70px;resize:vertical;" required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prerequisite Skills (Comma-separated)</label>
+            <input type="text" class="form-input" id="editTrackSkills" required>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:flex-end;">
+            <button type="button" class="btn btn-outline" onclick="closeEditTrackModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Track Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER INTERVIEWER MODAL (WITH MULTIPLE DOMAINS) -->
+  <div class="modal-overlay" id="addInterviewerModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Register Domain Interviewer</h3>
+        <button class="modal-close" onclick="closeAddInterviewerModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="addInterviewerForm" onsubmit="handleCreateInterviewer(event)">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-input" id="newInvName" placeholder="e.g. Dr. Anand Varma" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Institutional Email</label>
+            <input type="email" class="form-input" id="newInvEmail" placeholder="e.g. anand@niat.edu" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Technical Track Specializations (Select Multiple)</label>
+            <p style="font-size:12px;color:var(--gray-500);margin-bottom:8px;">Check all domains this evaluator is qualified to conduct level defenses for:</p>
+            <div id="registerDomainCheckboxes" style="display:grid;grid-template-columns:1fr;gap:8px;max-height:160px;overflow-y:auto;padding:8px;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);">
+              <!-- Dynamically populated checkboxes -->
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Temporary Password</label>
+            <input type="password" class="form-input" id="newInvPass" value="password123" required>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:flex-end;">
+            <button type="button" class="btn btn-outline" onclick="closeAddInterviewerModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Evaluator Profile</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT INTERVIEWER SPECIALIZATIONS MODAL -->
+  <div class="modal-overlay" id="editInterviewerModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Technical Track Specializations</h3>
+        <button class="modal-close" onclick="closeEditInterviewerModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="editInterviewerForm" onsubmit="handleSaveInterviewerDomains(event)">
+          <input type="hidden" id="editInvId">
+          <div style="background:var(--gray-50);padding:12px;border-radius:10px;margin-bottom:16px;border:1px solid var(--gray-200);">
+            <div style="font-size:14px;font-weight:700;" id="editInvName">Evaluator Name</div>
+            <div style="font-size:12.5px;color:var(--gray-500);" id="editInvEmail">email@niat.edu</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assigned Track Specializations (Check all that apply):</label>
+            <div id="editDomainCheckboxes" style="display:grid;grid-template-columns:1fr;gap:8px;max-height:180px;overflow-y:auto;padding:8px;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);">
+              <!-- Checkboxes populated dynamically -->
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:flex-end;">
+            <button type="button" class="btn btn-outline" onclick="closeEditInterviewerModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update Specializations</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLAG MALPRACTICE MODAL -->
+  <div class="modal-overlay" id="flagModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 style="color:var(--danger);">⚠️ Revoke Badge & Flag Malpractice</h3>
+        <button class="modal-close" onclick="closeFlagModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--gray-600);margin-bottom:18px;font-size:14px;">
+          Flagging <strong id="flagStudentName" style="color:var(--dark);">Candidate</strong> will immediately nullify their awarded Track Badge and log a permanent entry into the academic integrity audit log.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Academic Integrity Findings</label>
+          <textarea id="flagReason" class="form-input" style="height:90px;resize:vertical;" placeholder="Details of unauthorized external code, proxy submission, or integrity breach..."></textarea>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+          <button class="btn btn-outline" onclick="closeFlagModal()">Cancel</button>
+          <button class="btn btn-danger" onclick="confirmFlagStudent()">Nullify Badge & Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN STAT DETAIL MODAL -->
+  <div class="modal-overlay" id="adminDetailModal">
+    <div class="modal" style="max-width:760px;">
+      <div class="modal-header">
+        <h3 id="adminDetailModalTitle">Metric Details</h3>
+        <button class="modal-close" onclick="closeAdminDetailModal()">✕</button>
+      </div>
+      <div class="modal-body" id="adminDetailModalBody">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const adminUser = requireAuth('admin');
+    if (!adminUser) {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#64748b;">Redirecting to admin sign-in...</div>';
+      throw new Error('Admin authentication required');
+    }
+    document.getElementById('adminName').textContent = adminUser.name;
+
+    function showAdminSection(secId) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      const targetSec = document.getElementById('sec-' + secId);
+      if (targetSec) targetSec.classList.add('active');
+
+      const tabs = ['pipeline', 'tracks', 'interviewers', 'users', 'audit'];
+      document.querySelectorAll('.nav-link').forEach((btn, idx) => {
+        btn.classList.toggle('active', tabs[idx] === secId);
+      });
+
+      if (secId === 'pipeline') renderAdminPipeline();
+      if (secId === 'tracks') renderAdminTracks();
+      if (secId === 'interviewers') renderInterviewerRoster();
+      if (secId === 'users') renderAdminUsers();
+      if (secId === 'audit') renderAuditLog();
+    }
+
+    // Populate Track Filter Dropdown in Pipeline
+    async function populateTrackFilter() {
+      const tracks = await fetchTracksFromPg();
+      const select = document.getElementById('trackFilter');
+      const currentVal = select.value;
+      select.innerHTML = '<option value="all">All Tracks</option>' + 
+        tracks.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+      if (currentVal) select.value = currentVal;
+    }
+
+    // ==========================================
+    // 1. CANDIDATE CLEARANCE PIPELINE (WITH SEARCH & FILTERS)
+    // ==========================================
+    async function renderAdminPipeline() {
+      await populateTrackFilter();
+      const trackFilter = document.getElementById('trackFilter').value;
+      const statusFilter = document.getElementById('statusFilter').value;
+      const searchQuery = (document.getElementById('pipelineSearchInput').value || '').trim().toLowerCase();
+
+      let pipeline = await fetchPipelineFromPg(trackFilter, statusFilter);
+
+      // Apply live search filter across name, email, and student ID
+      if (searchQuery) {
+        pipeline = pipeline.filter(s => 
+          (s.name && s.name.toLowerCase().includes(searchQuery)) ||
+          (s.email && s.email.toLowerCase().includes(searchQuery)) ||
+          (s.id && s.id.toLowerCase().includes(searchQuery)) ||
+          (s.interviewer && s.interviewer.toLowerCase().includes(searchQuery))
+        );
+      }
+
+      const tbody = document.getElementById('pipelineTableBody');
+      const empty = document.getElementById('pipelineEmpty');
+
+      if (pipeline.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        updateAdminStats(pipeline);
+        return;
+      }
+
+      empty.style.display = 'none';
+      tbody.innerHTML = pipeline.map(s => `
+        <tr>
+          <td><strong>${s.name}</strong><br><span style="font-size:12px;color:var(--gray-400);">${s.id} · ${s.email || ''}</span></td>
+          <td>${s.track}</td>
+          <td>${getStatusBadge(s.status)}</td>
+          <td>${s.date !== '—' ? formatInterviewSchedule(s.date, s.time, s.endTime) : '<span style="color:var(--gray-400);">Not Scheduled</span>'}</td>
+          <td>${s.interviewer !== '—' ? s.interviewer : '—'}</td>
+          <td>${s.attempt || '1st'}</td>
+          <td>
+            ${s.status === 'Passed' ? `<button class="btn btn-sm btn-outline" style="border-color:var(--danger);color:var(--danger);" onclick="openFlagModal('${s.name}')">🚩 Flag Malpractice</button>` : ''}
+            ${s.status === 'Not Booked' ? `<button class="btn btn-sm btn-outline" onclick="sendIndividualReminder('${s.name}')">📩 Remind</button>` : ''}
+            ${s.status === 'Flagged' ? `<span style="font-size:12px;color:var(--danger);font-weight:700;">Revoked</span>` : ''}
+            ${['Booked', 'Failed', 'Retake'].includes(s.status) ? `<button class="btn btn-sm btn-outline" onclick="adminOverrideOutcome('${s.name}')">⚙ Override</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+
+      updateAdminStats(pipeline);
+    }
+
+    function getStatusBadge(status) {
+      const map = {
+        'Passed':     '<span class="badge badge-green">✓ Passed</span>',
+        'Failed':     '<span class="badge badge-red">✗ Failed</span>',
+        'Booked':     '<span class="badge badge-blue">📅 Booked</span>',
+        'Not Booked': '<span class="badge badge-yellow">⏳ Not Booked</span>',
+        'Retake':     '<span class="badge badge-purple">↻ Retake</span>',
+        'Flagged':    '<span class="badge badge-red">🚩 Flagged</span>',
+      };
+      return map[status] || status;
+    }
+
+    // ==========================================
+    // 2. TRACK & COURSE CATEGORIES (CRUD + TOGGLE + SEARCH)
+    // ==========================================
+    let cachedTracks = [];
+    async function renderAdminTracks() {
+      cachedTracks = await fetchTracksFromPg();
+      const searchQuery = (document.getElementById('trackSearchInput').value || '').trim().toLowerCase();
+      const statusFilter = document.getElementById('trackStatusFilter').value;
+
+      let filtered = cachedTracks;
+
+      // Filter by Active / Disabled
+      if (statusFilter === 'active') {
+        filtered = filtered.filter(t => t.isActive !== false);
+      } else if (statusFilter === 'disabled') {
+        filtered = filtered.filter(t => t.isActive === false);
+      }
+
+      // Filter by Search Query (name, domain, skills)
+      if (searchQuery) {
+        filtered = filtered.filter(t => 
+          (t.name && t.name.toLowerCase().includes(searchQuery)) ||
+          (t.domain && t.domain.toLowerCase().includes(searchQuery)) ||
+          (t.description && t.description.toLowerCase().includes(searchQuery)) ||
+          (t.skills && t.skills.some(sk => sk.toLowerCase().includes(searchQuery)))
+        );
+      }
+
+      const grid = document.getElementById('adminTracksGrid');
+      const empty = document.getElementById('tracksEmpty');
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      grid.innerHTML = filtered.map(t => {
+        const isActive = t.isActive !== false;
+
+        return `
+          <div class="track-card ${isActive ? '' : 'is-disabled'}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:26px;">${t.icon}</span>
+                <div>
+                  <div class="track-name" style="margin-bottom:0;">${t.name}</div>
+                  <span style="font-size:12px;color:var(--gray-500);font-weight:600;">${t.domain}</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="badge ${isActive ? 'badge-green' : 'badge-gray'}">${isActive ? '● Active' : '⊘ Disabled'}</span>
+                <span class="badge badge-purple">${t.badgeTier}</span>
+              </div>
+            </div>
+            
+            <p style="font-size:13px;color:var(--gray-600);line-height:1.5;margin-bottom:14px;flex:1;">
+              ${t.description}
+            </p>
+            
+            <div style="background:var(--gray-50);padding:10px 12px;border-radius:10px;margin-bottom:14px;">
+              <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Prerequisite Skills</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                ${t.skills.map(sk => `<span class="tag">${sk}</span>`).join('')}
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--gray-500);font-weight:600;">
+              <span>👥 ${t.enrolledCount || 0} students enrolled</span>
+              <span style="color:${isActive ? 'var(--success)' : 'var(--gray-500)'};">${isActive ? 'Available in Catalog ✓' : 'Hidden from Enrollment'}</span>
+            </div>
+
+            <!-- ACTION OPTIONS: EDIT, DISABLE/ENABLE, DELETE -->
+            <div class="track-actions-bar">
+              <button class="btn btn-sm btn-outline" onclick="openEditTrackModal('${t.id}')">✏️ Edit</button>
+              <button class="${isActive ? 'btn-warning-light' : 'btn-success-light'}" onclick="handleToggleTrack('${t.id}', ${isActive})">
+                ${isActive ? '⊘ Disable' : '✓ Enable'}
+              </button>
+              <button class="btn-danger-outline" onclick="handleDeleteTrack('${t.id}', '${escapeAttr(t.name)}')">🗑️ Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeAttr(str) {
+      return (str || '').replace(/'/g, "\\'");
+    }
+
+    function openAddTrackModal() {
+      document.getElementById('addTrackModal').classList.add('active');
+    }
+    function closeAddTrackModal() {
+      document.getElementById('addTrackModal').classList.remove('active');
+    }
+
+    async function handleCreateTrack(e) {
+      e.preventDefault();
+      const title = document.getElementById('newTrackName').value.trim();
+      const domainArea = document.getElementById('newTrackDomain').value.trim();
+      const badgeTier = document.getElementById('newTrackTier').value;
+      const icon = document.getElementById('newTrackIcon').value.trim();
+      const description = document.getElementById('newTrackDesc').value.trim();
+      const skills = document.getElementById('newTrackSkills').value.trim();
+
+      await addTrack({ title, domainArea, badgeTier, icon, description, skills });
+      closeAddTrackModal();
+      document.getElementById('addTrackForm').reset();
+      showToast(`New category '${title}' published successfully!`, 'success');
+      await renderAdminTracks();
+    }
+
+    // Edit Track Category
+    function openEditTrackModal(trackId) {
+      const track = cachedTracks.find(t => t.id === trackId);
+      if (!track) return;
+
+      document.getElementById('editTrackId').value = track.id;
+      document.getElementById('editTrackName').value = track.name;
+      document.getElementById('editTrackDomain').value = track.domain;
+      document.getElementById('editTrackTier').value = track.badgeTier;
+      document.getElementById('editTrackIcon').value = track.icon;
+      document.getElementById('editTrackDesc').value = track.description;
+      document.getElementById('editTrackSkills').value = track.skills.join(', ');
+
+      document.getElementById('editTrackModal').classList.add('active');
+    }
+    function closeEditTrackModal() {
+      document.getElementById('editTrackModal').classList.remove('active');
+    }
+
+    async function handleUpdateTrack(e) {
+      e.preventDefault();
+      const id = document.getElementById('editTrackId').value;
+      const title = document.getElementById('editTrackName').value.trim();
+      const domainArea = document.getElementById('editTrackDomain').value.trim();
+      const badgeTier = document.getElementById('editTrackTier').value;
+      const icon = document.getElementById('editTrackIcon').value.trim();
+      const description = document.getElementById('editTrackDesc').value.trim();
+      const skills = document.getElementById('editTrackSkills').value.trim().split(',').map(s => s.trim());
+
+      await updateTrack(id, { title, domainArea, badgeTier, icon, description, skills });
+      closeEditTrackModal();
+      showToast(`Track category '${title}' updated successfully!`, 'success');
+      await renderAdminTracks();
+    }
+
+    // Toggle Track Disable / Enable
+    async function handleToggleTrack(trackId, currentActive) {
+      const res = await toggleTrackActive(trackId);
+      showToast(res.message || `Track status updated!`, res.isActive ? 'success' : 'info');
+      await renderAdminTracks();
+    }
+
+    // Delete Track Category
+    async function handleDeleteTrack(trackId, trackName) {
+      if (confirm(`Are you sure you want to permanently delete the track category "${trackName}"?`)) {
+        await deleteTrack(trackId);
+        showToast(`Track "${trackName}" deleted successfully!`, 'info');
+        await renderAdminTracks();
+      }
+    }
+
+    // ==========================================
+    // 3. FACULTY INTERVIEWERS & MULTIPLE DOMAINS (BLOCK & REMOVE)
+    // ==========================================
+    let cachedInterviewers = [];
+    async function renderInterviewerRoster() {
+      try {
+        const res = await fetch(API_BASE + '/interviewers');
+        if (res.ok) {
+          const d = await res.json();
+          cachedInterviewers = d.interviewers || [];
+        }
+      } catch (e) {
+        cachedInterviewers = getUsers().filter(u => u.role === 'interviewer');
+      }
+
+      const searchQuery = (document.getElementById('interviewerSearchInput').value || '').trim().toLowerCase();
+      let interviewers = cachedInterviewers;
+
+      if (searchQuery) {
+        interviewers = interviewers.filter(u => 
+          (u.name && u.name.toLowerCase().includes(searchQuery)) ||
+          (u.email && u.email.toLowerCase().includes(searchQuery)) ||
+          (u.domain && u.domain.toLowerCase().includes(searchQuery))
+        );
+      }
+
+      const slots = await fetchSlotsFromPg();
+      const pipeline = await fetchPipelineFromPg();
+      const tbody = document.getElementById('interviewerRosterBody');
+      const empty = document.getElementById('interviewersEmpty');
+
+      if (interviewers.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      tbody.innerHTML = interviewers.map(u => {
+        const totalSlots = slots.filter(s => (s.interviewer_name || s.interviewer) === u.name).length;
+        const openSlots = slots.filter(s => (s.interviewer_name || s.interviewer) === u.name && !s.is_booked && !s.booked).length;
+        const isBlocked = u.isBlocked === true;
+        
+        // Split multiple domain specializations into badges
+        const domainsList = (u.domain || 'Full Stack Development').split(',').map(d => d.trim()).filter(Boolean);
+
+        return `
+          <tr style="${isBlocked ? 'opacity:0.65;background:#fff5f5;' : ''}">
+            <td>
+              <strong>${u.name}</strong>
+              ${isBlocked ? '<span class="badge badge-red" style="margin-left:6px;font-size:10px;">Suspended</span>' : ''}
+            </td>
+            <td>${u.email}</td>
+            <td>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;max-width:320px;">
+                ${domainsList.map(dm => `<span class="badge badge-purple" style="font-size:11px;">${dm}</span>`).join('')}
+              </div>
+            </td>
+            <td>
+              <span class="badge ${isBlocked ? 'badge-red' : 'badge-green'}">
+                ${isBlocked ? '🔴 Blocked' : '● Active'}
+              </span>
+            </td>
+            <td>
+              <span style="font-size:13px;font-weight:600;">${totalSlots} slots · <span style="color:var(--success);">${openSlots} open</span></span>
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-sm btn-outline" onclick="openEditInterviewerModal('${u.id}')">✏️ Edit Domains</button>
+                <button class="${isBlocked ? 'btn-success-light' : 'btn-warning-light'}" onclick="handleToggleBlockInterviewer('${u.id}', ${isBlocked})">
+                  ${isBlocked ? '✓ Unblock' : '🚫 Block'}
+                </button>
+                <button class="btn-danger-outline" onclick="handleRemoveInterviewer('${u.id}', '${escapeAttr(u.name)}')">🗑️ Remove</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Open Register Interviewer with Multi-Domain Checkboxes
+    async function openAddInterviewerModal() {
+      const tracks = await fetchTracksFromPg();
+      const container = document.getElementById('registerDomainCheckboxes');
+      
+      container.innerHTML = tracks.map(t => `
+        <label class="domain-chip-label">
+          <input type="checkbox" name="regInvDomains" value="${t.name}">
+          <span>${t.icon} ${t.name} <em style="font-size:11px;color:var(--gray-400);">(${t.domain})</em></span>
+        </label>
+      `).join('');
+
+      document.getElementById('addInterviewerModal').classList.add('active');
+    }
+    function closeAddInterviewerModal() {
+      document.getElementById('addInterviewerModal').classList.remove('active');
+    }
+
+    async function handleCreateInterviewer(e) {
+      e.preventDefault();
+      const name = document.getElementById('newInvName').value.trim();
+      const email = document.getElementById('newInvEmail').value.trim();
+      const pass = document.getElementById('newInvPass').value.trim();
+
+      // Collect checked multiple domains
+      const checkedBoxes = Array.from(document.querySelectorAll('input[name="regInvDomains"]:checked'));
+      const domains = checkedBoxes.map(cb => cb.value);
+
+      if (domains.length === 0) {
+        showToast('Please select at least one technical track specialization.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE + '/interviewers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password: pass || 'password123', domains })
+        });
+        if (res.ok) {
+          showToast(`Evaluator ${name} registered with ${domains.length} domain specializations!`, 'success');
+        }
+      } catch (e) {
+        console.warn('Interviewers API offline');
+      }
+
+      closeAddInterviewerModal();
+      document.getElementById('addInterviewerForm').reset();
+      await renderInterviewerRoster();
+    }
+
+    // Edit Interviewer Domains Modal
+    async function openEditInterviewerModal(interviewerId) {
+      const inv = cachedInterviewers.find(u => u.id === interviewerId);
+      if (!inv) return;
+
+      document.getElementById('editInvId').value = inv.id;
+      document.getElementById('editInvName').textContent = inv.name;
+      document.getElementById('editInvEmail').textContent = inv.email;
+
+      const tracks = await fetchTracksFromPg();
+      const currentDomains = (inv.domain || '').split(',').map(d => d.trim());
+
+      const container = document.getElementById('editDomainCheckboxes');
+      container.innerHTML = tracks.map(t => {
+        const isChecked = currentDomains.includes(t.name);
+        return `
+          <label class="domain-chip-label">
+            <input type="checkbox" name="editInvDomains" value="${t.name}" ${isChecked ? 'checked' : ''}>
+            <span>${t.icon} ${t.name} <em style="font-size:11px;color:var(--gray-400);">(${t.domain})</em></span>
+          </label>
+        `;
+      }).join('');
+
+      document.getElementById('editInterviewerModal').classList.add('active');
+    }
+    function closeEditInterviewerModal() {
+      document.getElementById('editInterviewerModal').classList.remove('active');
+    }
+
+    async function handleSaveInterviewerDomains(e) {
+      e.preventDefault();
+      const id = document.getElementById('editInvId').value;
+      const inv = cachedInterviewers.find(u => u.id === id);
+      const checkedBoxes = Array.from(document.querySelectorAll('input[name="editInvDomains"]:checked'));
+      const domains = checkedBoxes.map(cb => cb.value);
+
+      if (domains.length === 0) {
+        showToast('Please select at least one technical domain specialization.', 'error');
+        return;
+      }
+
+      await updateInterviewer(id, {
+        name: inv ? inv.name : 'Faculty Evaluator',
+        email: inv ? inv.email : '',
+        domains: domains
+      });
+
+      closeEditInterviewerModal();
+      showToast('Specializations updated successfully!', 'success');
+      await renderInterviewerRoster();
+    }
+
+    // Toggle Block Evaluator
+    async function handleToggleBlockInterviewer(id, isBlocked) {
+      const res = await toggleInterviewerBlock(id);
+      showToast(res.message || 'Interviewer status updated', res.isBlocked ? 'info' : 'success');
+      await renderInterviewerRoster();
+    }
+
+    // Remove Evaluator
+    async function handleRemoveInterviewer(id, name) {
+      if (confirm(`Are you sure you want to remove ${name} from the interviewer roster? All associated availability slots will be deleted and any booked candidates will be reverted to 'Not Booked' for re-scheduling.`)) {
+        await deleteInterviewer(id);
+        showToast(`Evaluator ${name} and all availability slots removed successfully.`, 'info');
+        await renderInterviewerRoster();
+        await renderAdminPipeline();
+        if (typeof renderAdminUsers === 'function') await renderAdminUsers();
+      }
+    }
+
+    // ==========================================
+    // 4. AUDIT LOG & MALPRACTICE
+    // ==========================================
+    let targetFlagStudent = '';
+    function openFlagModal(studentName) {
+      targetFlagStudent = studentName;
+      document.getElementById('flagStudentName').textContent = studentName;
+      document.getElementById('flagReason').value = '';
+      document.getElementById('flagModal').classList.add('active');
+    }
+    function closeFlagModal() {
+      document.getElementById('flagModal').classList.remove('active');
+    }
+
+    async function confirmFlagStudent() {
+      const reason = document.getElementById('flagReason').value.trim() || 'Academic dishonesty verified by evaluation board.';
+      
+      try {
+        await fetch(API_BASE + '/admin/flag-malpractice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentName: targetFlagStudent,
+            studentEmail: targetFlagStudent.toLowerCase().replace(' ', '') + '@niat.edu',
+            adminName: adminUser.name,
+            reason
+          })
+        });
+      } catch (e) {
+        console.warn('Flag API offline');
+      }
+
+      closeFlagModal();
+      showToast(`${targetFlagStudent}'s badge nullified and audit recorded.`, 'error');
+      await renderAdminPipeline();
+      await renderAuditLog();
+    }
+
+    function sendIndividualReminder(name) {
+      showToast(`Reminder dispatched to ${name}`, 'success');
+    }
+
+    function bulkRemindUnbooked() {
+      const pipeline = getPipeline();
+      const unbooked = pipeline.filter(p => p.status === 'Not Booked');
+      showToast(`Automated reminders sent to all ${unbooked.length} unbooked candidates!`, 'success');
+    }
+
+    async function adminOverrideOutcome(studentName) {
+      try {
+        await fetch(API_BASE + '/evaluations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentName,
+            studentEmail: studentName.toLowerCase().replace(' ', '') + '@niat.edu',
+            trackName: 'Full Stack Development',
+            interviewerEmail: adminUser.email,
+            decision: 'PASS',
+            feedbackNotes: 'Admin manual clearance override granted.'
+          })
+        });
+      } catch (e) {
+        console.warn('Override API offline');
+      }
+      showToast(`Override successful: ${studentName} marked as PASSED`, 'success');
+      await renderAdminPipeline();
+    }
+
+    async function populateAuditTrackFilter() {
+      const tracks = await fetchTracksFromPg();
+      const select = document.getElementById('auditTrackFilter');
+      if (!select) return;
+      const cur = select.value;
+      select.innerHTML = '<option value="all">All Tracks</option>' + 
+        tracks.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+      if (cur) select.value = cur;
+    }
+
+    async function renderAuditLog() {
+      await populateAuditTrackFilter();
+      let logs = [];
+      try {
+        const res = await fetch(API_BASE + '/admin/audit-logs');
+        if (res.ok) {
+          const d = await res.json();
+          logs = d.logs || [];
+        }
+      } catch (e) {
+        console.warn('Audit logs API offline');
+      }
+
+      const searchEl = document.getElementById('auditSearchInput');
+      const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+      const trackEl = document.getElementById('auditTrackFilter');
+      const trackFilter = trackEl ? trackEl.value : 'all';
+      const actionEl = document.getElementById('auditActionFilter');
+      const actionFilter = actionEl ? actionEl.value : 'all';
+
+      const filtered = logs.filter(f => {
+        if (trackFilter !== 'all' && f.track_name !== trackFilter) return false;
+        if (actionFilter !== 'all') {
+          const act = (f.action_taken || '').toLowerCase();
+          if (!act.includes(actionFilter.toLowerCase())) return false;
+        }
+        if (query) {
+          const matchName = (f.student_name || '').toLowerCase().includes(query);
+          const matchEmail = (f.student_email || '').toLowerCase().includes(query);
+          const matchTrack = (f.track_name || '').toLowerCase().includes(query);
+          const matchReason = (f.reason || '').toLowerCase().includes(query);
+          const matchAction = (f.action_taken || '').toLowerCase().includes(query);
+          if (!matchName && !matchEmail && !matchTrack && !matchReason && !matchAction) return false;
+        }
+        return true;
+      });
+
+      const tbody = document.getElementById('auditTableBody');
+      const emptyEl = document.getElementById('auditEmpty');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+
+      if (emptyEl) emptyEl.style.display = 'none';
+      tbody.innerHTML = filtered.map(f => `
+        <tr>
+          <td><strong>${f.student_name}</strong><br><span style="font-size:12px;color:var(--gray-400);">${f.student_email}</span></td>
+          <td>${f.track_name}</td>
+          <td style="color:var(--danger);font-size:13px;">${f.reason}</td>
+          <td>${formatDisplayDate(f.flagged_at, 'short')}</td>
+          <td><span class="badge badge-red">${f.action_taken || 'Badge Revoked'}</span></td>
+        </tr>
+      `).join('');
+    }
+    window.renderAudit = renderAuditLog;
+
+    async function updateAdminStats(pipelineData) {
+      const pipeline = pipelineData || await fetchPipelineFromPg();
+      const eligible = pipeline.length;
+      const booked = pipeline.filter(p => p.status !== 'Not Booked').length;
+      const unbooked = pipeline.filter(p => p.status === 'Not Booked').length;
+      const passed = pipeline.filter(p => p.status === 'Passed').length;
+      const rate = eligible > 0 ? Math.round((booked / eligible) * 100) : 0;
+
+      document.getElementById('statEligibleTotal').textContent = eligible;
+      document.getElementById('statBookedTotal').textContent = booked;
+      document.getElementById('statUnbookedTotal').textContent = unbooked;
+      document.getElementById('statBadgesTotal').textContent = passed;
+      document.getElementById('statBookedPercent').textContent = `${rate}% conversion rate`;
+    }
+
+    // ==========================================
+    // ADMIN DASHBOARD TAPABLE STAT MODALS
+    // ==========================================
+    function closeAdminDetailModal() {
+      document.getElementById('adminDetailModal').classList.remove('active');
+    }
+
+    async function openAdminStatModal(type) {
+      const pipeline = await fetchPipelineFromPg();
+      const modal = document.getElementById('adminDetailModal');
+      const titleEl = document.getElementById('adminDetailModalTitle');
+      const bodyEl = document.getElementById('adminDetailModalBody');
+
+      let title = '';
+      let content = '';
+
+      if (type === 'eligible') {
+        title = '🎓 Eligible Candidates Roster';
+        content = `
+          <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+            Candidates who have verified all prerequisite contest skills and are qualified for a live Level Clearance Interview.
+          </p>
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Student Candidate</th>
+                  <th>Track</th>
+                  <th>Status</th>
+                  <th>Evaluator Appointment</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pipeline.map(p => `
+                  <tr>
+                    <td><strong>${p.name}</strong><br><span style="font-size:11.5px;color:var(--gray-400);">${p.id} · ${p.email}</span></td>
+                    <td>${p.track}</td>
+                    <td>${getStatusBadge(p.status)}</td>
+                    <td>${p.date !== '—' ? formatInterviewSchedule(p.date, p.time, p.endTime) : '<span style="color:var(--gray-400);">Not Booked</span>'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else if (type === 'reserved') {
+        title = '📅 Reserved Interview Slots';
+        const booked = pipeline.filter(p => p.status === 'Booked');
+        content = `
+          <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+            ${booked.length} candidates with live Level Clearance Interview appointments confirmed.
+          </p>
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Track</th>
+                  <th>Scheduled Date & Time</th>
+                  <th>Assigned Evaluator</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${booked.map(b => `
+                  <tr>
+                    <td><strong>${b.name}</strong><br><span style="font-size:11.5px;color:var(--gray-400);">${b.id}</span></td>
+                    <td>${b.track}</td>
+                    <td style="font-weight:600;color:var(--primary);">${formatInterviewSchedule(b.date, b.time, b.endTime)}</td>
+                    <td>👨‍🏫 ${b.interviewer}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px;text-align:right;">
+            <button class="btn btn-primary btn-sm" onclick="closeAdminDetailModal(); document.getElementById('statusFilter').value = 'Booked'; renderAdminPipeline();">
+              Filter Pipeline Table to Booked →
+            </button>
+          </div>
+        `;
+      } else if (type === 'pending') {
+        title = '⏳ Pending Candidate Action (Unbooked)';
+        const unbooked = pipeline.filter(p => p.status === 'Not Booked');
+        content = `
+          <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+            ${unbooked.length} candidates are eligible but have not yet reserved an interview slot with domain faculty.
+          </p>
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Track</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${unbooked.map(u => `
+                  <tr>
+                    <td><strong>${u.name}</strong><br><span style="font-size:11.5px;color:var(--gray-400);">${u.id} · ${u.email}</span></td>
+                    <td>${u.track}</td>
+                    <td><span class="badge badge-yellow">⏳ Action Required</span></td>
+                    <td><button class="btn btn-sm btn-outline" onclick="sendIndividualReminder('${u.name}')">📩 Send Reminder</button></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="sendBatchReminders()">📩 Send Batch Reminders (${unbooked.length})</button>
+            <button class="btn btn-outline btn-sm" onclick="closeAdminDetailModal(); document.getElementById('statusFilter').value = 'Not Booked'; renderAdminPipeline();">
+              Filter Pipeline Table to Unbooked →
+            </button>
+          </div>
+        `;
+      } else if (type === 'badges') {
+        title = '🏆 Awarded Track Badges & Certified Qualiflyers';
+        const passed = pipeline.filter(p => p.status === 'Passed');
+        content = `
+          <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:16px;">
+            ${passed.length} candidates have cleared their live code defense and earned certified industry credentials.
+          </p>
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Qualiflyer</th>
+                  <th>Certified Track Badge</th>
+                  <th>Evaluation Outcome</th>
+                  <th>Faculty Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${passed.map(p => `
+                  <tr>
+                    <td><strong>${p.name}</strong><br><span style="font-size:11.5px;color:var(--gray-400);">${p.id} · ${p.email}</span></td>
+                    <td><span class="badge badge-purple">${p.track}</span></td>
+                    <td><span class="badge badge-green">✓ Certified Qualiflyer</span></td>
+                    <td style="font-size:12px;color:var(--gray-600);font-style:italic;">"${p.notes || 'Strong code defense.'}"</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px;text-align:right;">
+            <button class="btn btn-primary btn-sm" onclick="closeAdminDetailModal(); document.getElementById('statusFilter').value = 'Passed'; renderAdminPipeline();">
+              Filter Pipeline Table to Certified Badges →
+            </button>
+          </div>
+        `;
+      }
+
+      titleEl.innerHTML = title;
+      bodyEl.innerHTML = content;
+      modal.classList.add('active');
+    }
+
+    // ==========================================
+    // 5. REGISTERED USER ACCOUNTS MANAGEMENT
+    // ==========================================
+    let cachedUsersList = [];
+
+    async function renderAdminUsers() {
+      const searchVal = (document.getElementById('userSearchInput')?.value || '').trim().toLowerCase();
+      const roleFilter = document.getElementById('userRoleFilter')?.value || 'all';
+      const statusFilter = document.getElementById('userStatusFilter')?.value || 'all';
+
+      cachedUsersList = await fetchUsersFromPg();
+      let filtered = [...cachedUsersList];
+
+      if (roleFilter !== 'all') {
+        filtered = filtered.filter(u => u.role === roleFilter);
+      }
+
+      if (statusFilter === 'active') {
+        filtered = filtered.filter(u => !u.isBlocked);
+      } else if (statusFilter === 'blocked') {
+        filtered = filtered.filter(u => u.isBlocked);
+      }
+
+      if (searchVal) {
+        filtered = filtered.filter(u =>
+          (u.name && u.name.toLowerCase().includes(searchVal)) ||
+          (u.email && u.email.toLowerCase().includes(searchVal)) ||
+          (u.niatId && u.niatId.toLowerCase().includes(searchVal)) ||
+          (u.domain && u.domain.toLowerCase().includes(searchVal))
+        );
+      }
+
+      const countBadge = document.getElementById('userCountBadge');
+      if (countBadge) {
+        countBadge.textContent = `${filtered.length} of ${cachedUsersList.length} Accounts`;
+      }
+
+      const tbody = document.getElementById('usersTableBody');
+      const empty = document.getElementById('usersEmpty');
+
+      if (!tbody) return;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        if (empty) empty.style.display = 'block';
+        return;
+      }
+
+      if (empty) empty.style.display = 'none';
+
+      tbody.innerHTML = filtered.map(u => {
+        const isMasterAdmin = u.email && u.email.toLowerCase() === 'admin@niat.edu';
+        const roleBadges = {
+          'admin': '<span class="badge badge-purple">👑 Operations Admin</span>',
+          'interviewer': '<span class="badge badge-blue">👨‍🏫 Faculty Evaluator</span>',
+          'student': '<span class="badge badge-gray">🎓 Student Candidate</span>'
+        };
+        const roleBadge = roleBadges[u.role] || `<span class="badge badge-gray">${u.role}</span>`;
+        const statusBadge = u.isBlocked
+          ? '<span class="badge badge-red">🔴 Blocked</span>'
+          : '<span class="badge badge-green">🟢 Active</span>';
+
+        const subDetail = u.role === 'interviewer'
+          ? `<span style="font-size:12px;color:var(--primary);font-weight:600;">Specialization: ${u.domain || 'Generalist'}</span>`
+          : (u.niatId ? `<span style="font-size:12px;color:var(--gray-500);font-weight:600;">ID: ${u.niatId}</span>` : '<span style="font-size:12px;color:var(--gray-400);">System Account</span>');
+
+        const dateStr = u.createdAt ? formatDisplayDate(u.createdAt, 'short') : 'Nov 2026';
+
+        const actions = isMasterAdmin
+          ? '<span class="badge badge-gray" style="font-weight:700;">🔒 Protected Root</span>'
+          : `
+            <div style="display:flex;gap:6px;align-items:center;">
+              ${u.isBlocked
+                ? `<button class="btn btn-sm btn-success-light" onclick="handleToggleBlockUser('${u.id}', true, '${escapeQuote(u.name)}')">✓ Unblock</button>`
+                : `<button class="btn btn-sm btn-warning-light" onclick="handleToggleBlockUser('${u.id}', false, '${escapeQuote(u.name)}')">🚫 Block</button>`
+              }
+              <button class="btn btn-sm btn-danger-outline" onclick="handleDeleteUser('${u.id}', '${escapeQuote(u.name)}', '${u.email}')">🗑️ Remove</button>
+            </div>
+          `;
+
+        return `
+          <tr ${u.isBlocked ? 'style="background:rgba(254,242,242,0.4);"' : ''}>
+            <td>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="user-avatar" style="width:38px;height:38px;font-size:13px;flex-shrink:0;background:${u.role === 'admin' ? 'var(--dark)' : u.role === 'interviewer' ? 'var(--primary)' : 'var(--secondary)'};color:white;">
+                  ${getInitials(u.name)}
+                </div>
+                <div>
+                  <div style="font-weight:700;color:var(--gray-900);">${u.name}</div>
+                  <div style="font-size:12px;color:var(--gray-500);">${u.email}</div>
+                </div>
+              </div>
+            </td>
+            <td>${roleBadge}</td>
+            <td>${subDetail}</td>
+            <td>${statusBadge}</td>
+            <td style="font-size:13px;color:var(--gray-600);">${dateStr}</td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeQuote(str) {
+      return (str || '').replace(/'/g, "\\'");
+    }
+
+    async function handleToggleBlockUser(id, isCurrentlyBlocked, name) {
+      const actionText = isCurrentlyBlocked ? 'unblock' : 'block';
+      if (!confirm(`Are you sure you want to ${actionText} user "${name}"?`)) return;
+
+      const res = await toggleUserBlock(id);
+      if (res.success) {
+        showToast(res.message || `User ${actionText}ed successfully`, res.isBlocked ? 'info' : 'success');
+        await renderAdminUsers();
+      } else {
+        showToast(res.message || 'Operation failed', 'error');
+      }
+    }
+
+    async function handleDeleteUser(id, name, email) {
+      if (!confirm(`⚠️ PERMANENT DELETION: Are you sure you want to completely remove "${name}" (${email})?\n\nThis will remove their profile and associated interview bookings/slots.`)) {
+        return;
+      }
+
+      const res = await deleteUser(id);
+      if (res.success) {
+        showToast(`User ${name} removed successfully.`, 'info');
+        await renderAdminUsers();
+        // Also refresh pipeline and interviewers if they were affected
+        renderAdminPipeline();
+        renderInterviewerRoster();
+      } else {
+        showToast(res.message || 'Failed to remove user', 'error');
+      }
+    }
+
+    // Init
+    renderAdminPipeline();
+  </script>
+</body>
+</html>
