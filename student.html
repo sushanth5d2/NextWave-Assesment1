@@ -678,9 +678,8 @@
     function renderMyTracks() {
       const enrollments = studentDashboardData.enrollments || [];
       const grid = document.getElementById('myTracksGrid');
-      const booking = studentDashboardData.booking;
+      const allBookings = studentDashboardData.bookings || (studentDashboardData.booking ? [studentDashboardData.booking] : []);
       const badges = studentDashboardData.badges || [];
-      const status = booking ? booking.status : null;
 
       if (enrollments.length === 0) {
         grid.innerHTML = `
@@ -701,9 +700,17 @@
         const skillsCleared = e.skillsCleared || 0;
         const percent = Math.min(100, Math.round((skillsCleared / totalSkills) * 100));
         
-        const isThisTrackPassed = (booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (status === 'Passed' || status === 'Pass')) || badges.some(b => b.track_id === e.trackId || b.badge_name === e.trackTitle || b.track_id === e.id);
-        const isThisTrackBooked = !isThisTrackPassed && booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (status === 'Booked' || status === 'Confirmed');
-        const isThisTrackRetake = !isThisTrackPassed && booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (status === 'Failed' || status === 'Retake');
+        // Find booking specifically for THIS track
+        const trackBooking = allBookings.find(b => 
+          b.track_id === e.trackId || (b.track_name && b.track_name.toLowerCase() === (e.trackTitle || '').toLowerCase())
+        );
+        const trackBadge = badges.find(b => 
+          b.track_id === e.trackId || (b.badge_name && b.badge_name.toLowerCase() === (e.trackTitle || '').toLowerCase()) || b.track_id === e.id
+        );
+
+        const isThisTrackPassed = !!trackBadge || (trackBooking && (trackBooking.status === 'Passed' || trackBooking.status === 'Pass'));
+        const isThisTrackBooked = !isThisTrackPassed && trackBooking && (trackBooking.status === 'Booked' || trackBooking.status === 'Confirmed');
+        const isThisTrackRetake = !isThisTrackPassed && trackBooking && (trackBooking.status === 'Failed' || trackBooking.status === 'Retake');
         const isEligible = !isThisTrackPassed && !isThisTrackBooked && (e.isEligible || (skillsCleared >= totalSkills));
 
         // Find next skill name to clear
@@ -719,25 +726,26 @@
             </div>
           `;
         } else if (isThisTrackBooked) {
-          const bookedSchedule = formatInterviewSchedule(booking.interview_date, booking.start_time, booking.end_time);
+          const bookedSchedule = formatInterviewSchedule(trackBooking.interview_date, trackBooking.start_time, trackBooking.end_time);
+          const intName = trackBooking.interviewer_name && trackBooking.interviewer_name !== '—' ? `with ${trackBooking.interviewer_name}` : '';
           actionHtml = `
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
-              <span style="font-size:12px;font-weight:700;color:var(--primary);">📅 Interview Booked (${bookedSchedule})</span>
-              <button class="btn btn-sm btn-outline" onclick="showCancelModal()">Manage Booking →</button>
+              <span style="font-size:12px;font-weight:700;color:var(--primary);">📅 Booked (${bookedSchedule} ${intName})</span>
+              <button class="btn btn-sm btn-outline" onclick="openCancelModalForTrack('${trackBooking.id || ''}', '${e.trackId}')">Manage Booking →</button>
             </div>
           `;
         } else if (isThisTrackRetake) {
           actionHtml = `
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
               <span style="font-size:12px;font-weight:700;color:var(--danger);">📋 Revision Needed — Retake Available</span>
-              <button class="btn btn-sm btn-warning" onclick="showSection('booking')">Book Retake Slot →</button>
+              <button class="btn btn-sm btn-warning" onclick="startBookingForTrack('${e.trackId}')">Book Retake Slot →</button>
             </div>
           `;
         } else if (isEligible) {
           actionHtml = `
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
               <span style="font-size:12px;font-weight:700;color:var(--success-dark);">🎯 All ${totalSkills} Skills Cleared!</span>
-              <button class="btn btn-sm btn-success" onclick="showSection('booking')">Book Interview Now →</button>
+              <button class="btn btn-sm btn-success" onclick="startBookingForTrack('${e.trackId}')">Book Interview Now →</button>
             </div>
           `;
         } else {
@@ -881,6 +889,7 @@
           const data = await res.json();
           if (data.success) {
             studentDashboardData = data;
+            studentDashboardData.bookings = data.bookings || (data.booking ? [data.booking] : []);
           }
         }
       } catch (e) {
@@ -908,9 +917,11 @@
         studentDashboardData.enrolledTrackIds = localTrackIds;
       }
 
-      if (!studentDashboardData.booking) {
+      if (!studentDashboardData.booking && (!studentDashboardData.bookings || studentDashboardData.bookings.length === 0)) {
         const pipeline = getPipeline();
-        studentDashboardData.booking = pipeline.find(p => (p.email && p.email.toLowerCase() === user.email.toLowerCase()) || p.name === user.name) || null;
+        const pBookings = pipeline.filter(p => (p.email && p.email.toLowerCase() === user.email.toLowerCase()) || p.name === user.name);
+        studentDashboardData.bookings = pBookings;
+        studentDashboardData.booking = pBookings[0] || null;
       }
 
       const booking = studentDashboardData.booking;
@@ -928,12 +939,14 @@
 
       const enrollments = studentDashboardData.enrollments || [];
       const badges = studentDashboardData.badges || [];
+      const allBookings = studentDashboardData.bookings || (studentDashboardData.booking ? [studentDashboardData.booking] : []);
       const numEnrolled = enrollments.length;
 
       // Calculate total skills cleared across all enrolled tracks
       const totalSkillsCleared = enrollments.reduce((sum, e) => sum + (e.skillsCleared || 0), 0);
       const isAnyEligible = enrollments.some(e => e.isEligible);
       const primaryTrack = enrollments[0];
+      const bookedBookings = allBookings.filter(b => b.status === 'Booked');
 
       // Update KPI cards
       document.getElementById('statEnrolledTracks').textContent = numEnrolled;
@@ -964,6 +977,35 @@
         sv.textContent = 'Not Enrolled';
         sv.style.color = 'var(--gray-400)';
         ss.textContent = 'Enroll in a track to begin';
+        return;
+      }
+
+      // STATE 2: ACTIVE BOOKED INTERVIEWS (Shows all booked tracks independently)
+      if (bookedBookings.length > 0) {
+        document.getElementById('msg-booked').style.display = 'flex';
+        if (bookedBookings.length === 1) {
+          const b = bookedBookings[0];
+          const rawDate = b.interview_date || b.date || 'Upcoming';
+          const dateWeekday = formatDisplayDate(rawDate, 'weekday');
+          const fullSchedule = formatInterviewSchedule(rawDate, b.start_time, b.end_time);
+          const invStr = b.interviewer_name && b.interviewer_name !== '—' ? `with <strong>${b.interviewer_name}</strong>` : 'with Faculty Evaluator';
+          document.getElementById('bookedMsgTitle').textContent = `Interview Confirmed — ${b.track_name || b.track || 'Track'} (${dateWeekday})`;
+          document.getElementById('bookedMsgBody').innerHTML = `📅 Scheduled for <strong>${fullSchedule}</strong> ${invStr}. <a href="javascript:void(0)" onclick="openCancelModalForTrack('${b.id || ''}', '${b.track_id || ''}')" style="font-weight:700;margin-left:6px;">Manage booking →</a>`;
+          sv.textContent = '📅 Interview Booked';
+          sv.style.color = 'var(--primary)';
+          ss.textContent = `${b.track_name || b.track}: ${fullSchedule}`;
+        } else {
+          document.getElementById('bookedMsgTitle').textContent = `📅 ${bookedBookings.length} Track Interviews Confirmed`;
+          const detailsList = bookedBookings.map(b => {
+            const rawDate = b.interview_date || b.date || 'Upcoming';
+            const sch = formatInterviewSchedule(rawDate, b.start_time, b.end_time);
+            return `<div style="margin-top:4px;">• <strong>${b.track_name || b.track}</strong>: ${sch} with ${b.interviewer_name || 'Evaluator'} <a href="javascript:void(0)" onclick="openCancelModalForTrack('${b.id || ''}', '${b.track_id || ''}')" style="font-weight:700;margin-left:6px;font-size:12px;">Manage →</a></div>`;
+          }).join('');
+          document.getElementById('bookedMsgBody').innerHTML = detailsList;
+          sv.textContent = `📅 ${bookedBookings.length} Interviews Booked`;
+          sv.style.color = 'var(--primary)';
+          ss.textContent = bookedBookings.map(b => b.track_name || b.track).join(', ');
+        }
         return;
       }
 
@@ -1058,28 +1100,7 @@
         return;
       }
 
-      // STATE 4: BOOKED
-      if (status === 'Booked') {
-        const rawDate = booking ? (booking.interview_date || booking.date) : 'Upcoming';
-        const rawStart = booking ? (booking.start_time || booking.time) : '';
-        const rawEnd = booking ? (booking.end_time || '') : '';
-        
-        const dateWeekday = formatDisplayDate(rawDate, 'weekday');
-        const fullSchedule = formatInterviewSchedule(rawDate, rawStart, rawEnd);
-        const invStr = booking && booking.interviewer_name && booking.interviewer_name !== '—'
-          ? `with <strong>${booking.interviewer_name}</strong>`
-          : 'with Faculty Evaluator';
-        const trkName = booking ? booking.track_name : (primaryTrack ? primaryTrack.trackTitle : 'Full Stack Development');
-        
-        document.getElementById('bookedMsgTitle').textContent = `Interview Confirmed — ${trkName} (${dateWeekday})`;
-        document.getElementById('bookedMsgBody').innerHTML = `📅 Scheduled for <strong>${fullSchedule}</strong> ${invStr}. <a href="javascript:void(0)" onclick="showCancelModal()" style="font-weight:700;margin-left:6px;">Manage booking →</a>`;
-        document.getElementById('msg-booked').style.display = 'flex';
 
-        sv.textContent = '📅 Interview Booked';
-        sv.style.color = 'var(--primary)';
-        ss.textContent = fullSchedule;
-        return;
-      }
 
       // STATE 5: FAILED / RETAKE
       if (status === 'Failed' || status === 'Retake') {
@@ -1225,9 +1246,16 @@
                 const total = (e.skills && Array.isArray(e.skills)) ? e.skills.length : 6;
                 const pct = Math.round((cleared / total) * 100);
 
-                const isThisTrackPassed = (booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (booking.status === 'Passed' || booking.status === 'Pass')) || badges.some(b => b.track_id === e.trackId || b.badge_name === e.trackTitle || b.track_id === e.id);
-                const isThisTrackBooked = !isThisTrackPassed && booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (booking.status === 'Booked' || booking.status === 'Confirmed');
-                const isThisTrackRetake = !isThisTrackPassed && booking && (booking.track_id === e.trackId || booking.track_name === e.trackTitle) && (booking.status === 'Failed' || booking.status === 'Retake');
+                const trackBooking = allBookings.find(b => 
+                  b.track_id === e.trackId || (b.track_name && b.track_name.toLowerCase() === (e.trackTitle || '').toLowerCase())
+                );
+                const trackBadge = badges.find(b => 
+                  b.track_id === e.trackId || (b.badge_name && b.badge_name.toLowerCase() === (e.trackTitle || '').toLowerCase()) || b.track_id === e.id
+                );
+
+                const isThisTrackPassed = !!trackBadge || (trackBooking && (trackBooking.status === 'Passed' || trackBooking.status === 'Pass'));
+                const isThisTrackBooked = !isThisTrackPassed && trackBooking && (trackBooking.status === 'Booked' || trackBooking.status === 'Confirmed');
+                const isThisTrackRetake = !isThisTrackPassed && trackBooking && (trackBooking.status === 'Failed' || trackBooking.status === 'Retake');
                 const isEligible = !isThisTrackPassed && !isThisTrackBooked && !isThisTrackRetake && (e.isEligible || (cleared >= total));
 
                 let badgeHtml = `<span class="badge badge-yellow">${cleared}/${total} Skills</span>`;
@@ -1247,11 +1275,12 @@
                     </button>
                   `;
                 } else if (isThisTrackBooked) {
-                  const bookedSchedule = formatInterviewSchedule(booking.interview_date, booking.start_time, booking.end_time);
+                  const bookedSchedule = formatInterviewSchedule(trackBooking.interview_date, trackBooking.start_time, trackBooking.end_time);
+                  const intName = trackBooking.interviewer_name && trackBooking.interviewer_name !== '—' ? `with ${trackBooking.interviewer_name}` : '';
                   badgeHtml = `<span class="badge badge-blue">📅 Defense Booked</span>`;
-                  progressDesc = `Scheduled on ${bookedSchedule} with ${booking.interviewer_name || 'Evaluator'}`;
+                  progressDesc = `Scheduled on ${bookedSchedule} ${intName}`;
                   btnHtml = `
-                    <button class="btn btn-sm btn-primary" onclick="closeStudentDetailModal();showCancelModal();">
+                    <button class="btn btn-sm btn-primary" onclick="closeStudentDetailModal();openCancelModalForTrack('${trackBooking.id || ''}', '${e.trackId}');">
                       Manage Appointment →
                     </button>
                   `;
@@ -1259,7 +1288,7 @@
                   badgeHtml = `<span class="badge badge-yellow">📋 Retake Available</span>`;
                   progressDesc = `Revision needed · Retake clearance slot available`;
                   btnHtml = `
-                    <button class="btn btn-sm btn-warning" onclick="closeStudentDetailModal();showSection('booking');">
+                    <button class="btn btn-sm btn-warning" onclick="closeStudentDetailModal();startBookingForTrack('${e.trackId}');">
                       Book Retake Slot →
                     </button>
                   `;
@@ -1267,7 +1296,7 @@
                   badgeHtml = `<span class="badge badge-green">✓ Eligible to Book</span>`;
                   progressDesc = `100% (${cleared}/${total} Cleared) · Gate Unlocked`;
                   btnHtml = `
-                    <button class="btn btn-sm btn-primary" onclick="closeStudentDetailModal();showSection('booking');">
+                    <button class="btn btn-sm btn-primary" onclick="closeStudentDetailModal();startBookingForTrack('${e.trackId}');">
                       Book Live Defense →
                     </button>
                   `;
@@ -1757,15 +1786,29 @@
     let selectedSlotId = null;
     let liveSlots = [];
     let selectedBookingTrackId = null;
+    let targetCancelBookingId = null;
+    let targetCancelTrackId = null;
+
+    function startBookingForTrack(trackId) {
+      selectedBookingTrackId = trackId;
+      showSection('booking');
+      loadBookingSlots();
+    }
 
     function getActiveBookingTrack() {
       const enrollments = studentDashboardData.enrollments || [];
-      const eligible = enrollments.filter(e => e.isEligible);
       if (selectedBookingTrackId) {
         const found = enrollments.find(e => e.trackId === selectedBookingTrackId);
         if (found) return found;
       }
-      return eligible[0] || enrollments[0] || {
+      const allBookings = studentDashboardData.bookings || [];
+      // Find an eligible track that is not yet booked
+      const unbookedEligible = enrollments.find(e => {
+        const b = allBookings.find(bk => bk.track_id === e.trackId || bk.track_name === e.trackTitle);
+        return e.isEligible && (!b || b.status !== 'Booked');
+      });
+      if (unbookedEligible) return unbookedEligible;
+      return enrollments.find(e => e.isEligible) || enrollments[0] || {
         trackId: 'track-fs',
         trackTitle: 'Full Stack Development',
         domain: 'AI Product Mastery',
@@ -1800,36 +1843,35 @@
 
       // Populate multiple eligible track switchers if applicable
       const enrollments = studentDashboardData.enrollments || [];
+      const allBookings = studentDashboardData.bookings || [];
       const eligibleTracks = enrollments.filter(e => e.isEligible);
       const pillsContainer = document.getElementById('bookingTrackPills');
       if (pillsContainer) {
         if (eligibleTracks.length > 1) {
-          pillsContainer.innerHTML = eligibleTracks.map(t => `
-            <button class="btn btn-sm ${t.trackId === currentTrack.trackId ? 'btn-primary' : 'btn-outline'}" 
-                    onclick="switchBookingTrack('${t.trackId}')">
-              ${t.trackIcon || ''} ${t.trackTitle}
-            </button>
-          `).join('');
+          pillsContainer.innerHTML = eligibleTracks.map(t => {
+            const b = allBookings.find(bk => bk.track_id === t.trackId || bk.track_name === t.trackTitle);
+            const isBooked = b && b.status === 'Booked';
+            const isCurrent = t.trackId === currentTrack.trackId;
+            return `
+              <button class="btn btn-sm ${isCurrent ? 'btn-primary' : 'btn-outline'}" 
+                      onclick="switchBookingTrack('${t.trackId}')"
+                      style="${isBooked ? 'border:1.5px dashed var(--primary);opacity:0.85;' : ''}">
+                ${t.trackIcon || ''} ${t.trackTitle} ${isBooked ? ' (📅 Booked)' : ''}
+              </button>
+            `;
+          }).join('');
         } else {
           pillsContainer.innerHTML = '';
         }
       }
 
       // Query slots strictly filtered to relevant domain / track specialization
-      const filterTarget = currentTrack.trackTitle || currentTrack.domain;
-      const allSlots = await fetchSlotsFromPg(null, filterTarget);
+      const allSlots = await fetchSlotsFromPg(null, currentTrack.trackTitle, currentTrack.trackId);
 
-      // Client-side domain match safeguard: only keep slots from interviewers who specialize in this track or domain
-      const targetLower = (filterTarget || '').toLowerCase();
-      const trackDomainLower = (currentTrack.domain || '').toLowerCase();
-
+      // Strict domain match safeguard: only keep slots from interviewers who specialize in this track or domain
       liveSlots = allSlots.filter(s => {
-        const slotDomain = (s.domain || '').toLowerCase();
-        const intSpecialization = (s.interviewer_domain || s.domain_specialization || '').toLowerCase();
-        return slotDomain.includes(targetLower) ||
-               slotDomain.includes(trackDomainLower) ||
-               intSpecialization.includes(targetLower) ||
-               intSpecialization.includes(trackDomainLower);
+        const spec = s.interviewer_domain || s.domain || '';
+        return isInterviewerQualifiedForTrack(spec, currentTrack.trackTitle, currentTrack.domain);
       });
 
       const dateSelect = document.getElementById('dateFilter');
@@ -1993,18 +2035,34 @@
       loadLiveStudentState();
     }
 
-    // Cancel Booking
+    // Cancel Booking (Scoped to specific track booking)
+    function openCancelModalForTrack(bookingId, trackId) {
+      targetCancelBookingId = bookingId;
+      targetCancelTrackId = trackId;
+      showCancelModal();
+    }
+
     function showCancelModal() { document.getElementById('cancelModal').classList.add('active'); }
-    function closeCancelModal() { document.getElementById('cancelModal').classList.remove('active'); }
+    function closeCancelModal() { 
+      document.getElementById('cancelModal').classList.remove('active'); 
+      targetCancelBookingId = null;
+      targetCancelTrackId = null;
+    }
 
     async function cancelBooking() {
+      const bId = targetCancelBookingId;
+      const tId = targetCancelTrackId;
       closeCancelModal();
 
       try {
         await fetch(API_BASE + '/bookings/cancel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studentEmail: user.email })
+          body: JSON.stringify({ 
+            studentEmail: user.email,
+            bookingId: bId,
+            trackId: tId
+          })
         });
       } catch (e) {
         console.warn('Cancel API offline');

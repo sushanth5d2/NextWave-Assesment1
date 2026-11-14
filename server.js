@@ -91,6 +91,24 @@ function normalizeDateString(d) {
   return s;
 }
 
+// Strict Domain Matching: Verifies if evaluator specialization matches a course track or domain area
+function isInterviewerQualifiedForTrack(interviewerSpecialization, trackTitle, trackDomain) {
+  if (!interviewerSpecialization) return false;
+  const specLower = interviewerSpecialization.toLowerCase();
+  const titleLower = (trackTitle || '').toLowerCase().trim();
+  const domainLower = (trackDomain || '').toLowerCase().trim();
+
+  if (titleLower && specLower.includes(titleLower)) return true;
+  if (domainLower && specLower.includes(domainLower)) return true;
+
+  const parts = specLower.split(',').map(s => s.trim()).filter(Boolean);
+  for (const part of parts) {
+    if (titleLower && (part.includes(titleLower) || titleLower.includes(part))) return true;
+    if (domainLower && (part.includes(domainLower) || domainLower.includes(part))) return true;
+  }
+  return false;
+}
+
 // ====================================================================
 // HEALTH & DB STATUS
 // ====================================================================
@@ -474,10 +492,10 @@ app.delete('/api/interviewers/:id', async (req, res) => {
 
 // Fetch Available Slots (Only from active, unblocked, existing interviewers matching domain)
 app.get('/api/slots', async (req, res) => {
-  const { interviewerEmail, domain, track } = req.query;
+  const { interviewerEmail, domain, track, trackId } = req.query;
   try {
     let sql = `
-      SELECT s.*, u.domain_specialization as interviewer_domain 
+      SELECT s.*, u.domain_specialization as interviewer_domain, u.name as interviewer_name 
       FROM availability_slots s
       JOIN users u ON LOWER(s.interviewer_email) = LOWER(u.email)
       WHERE u.role = 'interviewer' 
@@ -489,20 +507,42 @@ app.get('/api/slots', async (req, res) => {
       params.push(interviewerEmail.toLowerCase());
       sql += ` AND LOWER(s.interviewer_email) = $${params.length}`;
     }
-    
-    const filterDomain = domain || track;
-    if (filterDomain && filterDomain !== 'all') {
-      params.push(`%${filterDomain.trim().toLowerCase()}%`);
-      sql += ` AND (LOWER(s.domain) LIKE $${params.length} OR LOWER(u.domain_specialization) LIKE $${params.length})`;
-    }
 
     const result = await db.query(sql, params);
-    const slots = result.rows.map(r => ({
+    let slots = result.rows.map(r => ({
       ...r,
       slot_date: normalizeDateString(r.slot_date),
       start_time: normalizeTimeString(r.start_time),
       end_time: normalizeTimeString(r.end_time)
     }));
+
+    // If a track / domain filter is specified, strictly filter slots by evaluator qualification
+    let targetTrackTitle = '';
+    let targetTrackDomain = '';
+    if (trackId) {
+      const tc = await db.query('SELECT title, domain_area FROM track_categories WHERE id = $1', [trackId]);
+      if (tc.rows.length > 0) {
+        targetTrackTitle = tc.rows[0].title;
+        targetTrackDomain = tc.rows[0].domain_area;
+      }
+    }
+    if (!targetTrackTitle && (track || domain)) {
+      const filterStr = (track || domain).trim();
+      const tc = await db.query('SELECT title, domain_area FROM track_categories WHERE LOWER(title) = LOWER($1) OR LOWER(id) = LOWER($1) OR LOWER(domain_area) = LOWER($1)', [filterStr]);
+      if (tc.rows.length > 0) {
+        targetTrackTitle = tc.rows[0].title;
+        targetTrackDomain = tc.rows[0].domain_area;
+      } else {
+        targetTrackTitle = filterStr;
+      }
+    }
+
+    if (targetTrackTitle || targetTrackDomain) {
+      slots = slots.filter(s => {
+        const spec = s.interviewer_domain || s.domain || '';
+        return isInterviewerQualifiedForTrack(spec, targetTrackTitle, targetTrackDomain);
+      });
+    }
 
     // Sort strictly chronologically by date and real time
     slots.sort((a, b) => {
@@ -593,7 +633,8 @@ app.post('/api/bookings', async (req, res) => {
     // 1. Validate slot availability and verify evaluator is active & unblocked
     if (slotId) {
       const slotCheck = await db.query(`
-        SELECT s.id, s.is_booked, u.is_blocked 
+        SELECT s.id, s.is_booked, s.domain as slot_domain, 
+               u.domain_specialization, u.name as interviewer_name, u.email as interviewer_email, u.is_blocked 
         FROM availability_slots s
         JOIN users u ON LOWER(s.interviewer_email) = LOWER(u.email)
         WHERE s.id = $1
@@ -611,13 +652,31 @@ app.post('/api/bookings', async (req, res) => {
         return res.status(400).json({ success: false, message: 'This evaluator is temporarily suspended / unavailable.' });
       }
 
+      // Domain Specialization Guard: Validate that the evaluator is qualified to evaluate this track!
+      const targetTrack = trackName || trackId || '';
+      let targetTrackDomain = '';
+      if (trackId) {
+        const tc = await db.query('SELECT title, domain_area FROM track_categories WHERE id = $1', [trackId]);
+        if (tc.rows.length > 0) {
+          targetTrackDomain = tc.rows[0].domain_area;
+        }
+      }
+
+      const evaluatorSpec = slotCheck.rows[0].domain_specialization || slotCheck.rows[0].slot_domain || '';
+      if (!isInterviewerQualifiedForTrack(evaluatorSpec, targetTrack, targetTrackDomain)) {
+        return res.status(400).json({
+          success: false,
+          message: `Evaluation Domain Mismatch: ${slotCheck.rows[0].interviewer_name} specializes in (${evaluatorSpec}), which does not match "${targetTrack}". Please select an evaluator assigned to this track.`
+        });
+      }
+
       await db.query('UPDATE availability_slots SET is_booked = true WHERE id = $1', [slotId]);
     }
 
-    // 2. Check existing booking for this student and track
+    // 2. Check existing booking for this student and THIS SPECIFIC TRACK
     const existing = await db.query(
-      'SELECT id FROM interview_bookings WHERE LOWER(student_email) = LOWER($1) AND track_name = $2',
-      [studentEmail.trim(), trackName]
+      'SELECT id FROM interview_bookings WHERE LOWER(student_email) = LOWER($1) AND (track_id = $2 OR track_name = $3)',
+      [studentEmail.trim(), trackId || '', trackName || '']
     );
 
     const cleanDate = normalizeDateString(interviewDate);
@@ -652,17 +711,31 @@ app.post('/api/bookings', async (req, res) => {
   }
 });
 
-// Cancel Booking
+// Cancel Booking (Specific to track / booking)
 app.post('/api/bookings/cancel', async (req, res) => {
-  const { bookingId, studentEmail, slotId } = req.body;
+  const { bookingId, studentEmail, trackId, slotId } = req.body;
   try {
     if (slotId) {
       await db.query('UPDATE availability_slots SET is_booked = false WHERE id = $1', [slotId]);
     }
-    await db.query(
-      "UPDATE interview_bookings SET status = 'Not Booked', interview_date = '—', start_time = '—', end_time = '—', interviewer_name = '—', notes = '' WHERE id = $1 OR LOWER(student_email) = LOWER($2)",
-      [bookingId, (studentEmail || '').toLowerCase()]
-    );
+    if (bookingId) {
+      await db.query('UPDATE availability_slots SET is_booked = false WHERE id IN (SELECT slot_id FROM interview_bookings WHERE id = $1)', [bookingId]);
+      await db.query(
+        "UPDATE interview_bookings SET status = 'Not Booked', interview_date = '—', start_time = '—', end_time = '—', interviewer_name = '—', notes = '' WHERE id = $1",
+        [bookingId]
+      );
+    } else if (studentEmail && trackId) {
+      await db.query('UPDATE availability_slots SET is_booked = false WHERE id IN (SELECT slot_id FROM interview_bookings WHERE LOWER(student_email) = LOWER($1) AND (track_id = $2 OR track_name = $2))', [studentEmail, trackId]);
+      await db.query(
+        "UPDATE interview_bookings SET status = 'Not Booked', interview_date = '—', start_time = '—', end_time = '—', interviewer_name = '—', notes = '' WHERE LOWER(student_email) = LOWER($1) AND (track_id = $2 OR track_name = $2)",
+        [studentEmail.toLowerCase(), trackId]
+      );
+    } else if (studentEmail) {
+      await db.query(
+        "UPDATE interview_bookings SET status = 'Not Booked', interview_date = '—', start_time = '—', end_time = '—', interviewer_name = '—', notes = '' WHERE LOWER(student_email) = LOWER($1)",
+        [studentEmail.toLowerCase()]
+      );
+    }
     res.json({ success: true, message: 'Booking cancelled.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -699,8 +772,8 @@ app.post('/api/evaluations', async (req, res) => {
     await db.query(`
       UPDATE interview_bookings
       SET status = $1, notes = $2
-      WHERE id = $3 OR LOWER(student_email) = LOWER($4)
-    `, [finalStatus, feedbackNotes || '', bookingId, studentEmail.toLowerCase()]);
+      WHERE id = $3 OR (LOWER(student_email) = LOWER($4) AND (track_id = $5 OR track_name = $6))
+    `, [finalStatus, feedbackNotes || '', bookingId, studentEmail.toLowerCase(), trackId || '', trackName || '']);
 
     // 3. If passed, grant Track Badge in student_badges table
     if (decision === 'PASS') {
@@ -753,16 +826,20 @@ app.get('/api/student/dashboard/:email', async (req, res) => {
       ORDER BY se.enrolled_at ASC
     `, [email]);
 
-    const booking = bookings.rows[0] || null;
-    if (booking) {
-      booking.interview_date = normalizeDateString(booking.interview_date);
-      booking.start_time = normalizeTimeString(booking.start_time);
-      booking.end_time = normalizeTimeString(booking.end_time);
-    }
+    const formattedBookings = bookings.rows.map(b => ({
+      ...b,
+      interview_date: normalizeDateString(b.interview_date),
+      start_time: normalizeTimeString(b.start_time),
+      end_time: normalizeTimeString(b.end_time)
+    }));
+
+    // Find active booked booking first, or latest booking
+    const activeBooking = formattedBookings.find(b => b.status === 'Booked') || formattedBookings[0] || null;
 
     res.json({
       success: true,
-      booking,
+      booking: activeBooking,
+      bookings: formattedBookings,
       badges: badges.rows,
       enrollments: enrollments.rows,
       enrolledTrackIds: enrollments.rows.map(r => r.trackId)
@@ -848,7 +925,7 @@ app.post('/api/student/clear-skill', async (req, res) => {
 // ADMIN PIPELINE, AUDIT & MALPRACTICE REVOCATION
 // ====================================================================
 app.get('/api/pipeline', async (req, res) => {
-  const { track, status } = req.query;
+  const { track, status, interviewerEmail } = req.query;
 
   try {
     let sql = 'SELECT * FROM interview_bookings WHERE 1=1';
@@ -864,20 +941,44 @@ app.get('/api/pipeline', async (req, res) => {
       sql += ` AND status = $${params.length}`;
     }
 
+    if (interviewerEmail) {
+      const userRes = await db.query('SELECT role, domain_specialization FROM users WHERE LOWER(email) = $1', [interviewerEmail.toLowerCase()]);
+      if (userRes.rows.length > 0 && userRes.rows[0].role === 'interviewer') {
+        const spec = userRes.rows[0].domain_specialization || '';
+        params.push(interviewerEmail.toLowerCase());
+        const emailIdx = params.length;
+
+        const domains = spec.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
+        let domainConditions = '';
+        if (domains.length > 0) {
+          const domainClauses = domains.map(d => {
+            params.push(`%${d}%`);
+            return `LOWER(track_name) LIKE $${params.length}`;
+          });
+          domainConditions = ` OR (status = 'Not Booked' AND (${domainClauses.join(' OR ')}))`;
+        }
+
+        sql += ` AND (LOWER(interviewer_email) = $${emailIdx}${domainConditions})`;
+      }
+    }
+
     sql += ' ORDER BY booked_at DESC';
     const result = await db.query(sql, params);
     
     // Map to frontend pipeline object format
     const pipeline = result.rows.map(r => ({
+      bookingId: r.id,
       id: r.student_id,
       name: r.student_name,
       email: r.student_email,
+      trackId: r.track_id,
       track: r.track_name,
       status: r.status,
       date: normalizeDateString(r.interview_date),
       time: normalizeTimeString(r.start_time),
       endTime: normalizeTimeString(r.end_time),
       interviewer: r.interviewer_name,
+      interviewerEmail: r.interviewer_email,
       attempt: r.attempt,
       notes: r.notes || ''
     }));

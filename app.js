@@ -569,14 +569,33 @@ function getEnrollments(studentEmail) {
   return demoDefaults[emailKey] || [];
 }
 
+// Domain Qualification Helper: strictly verifies if an evaluator's specialization matches a track
+function isInterviewerQualifiedForTrack(interviewerSpecialization, trackTitle, trackDomain) {
+  if (!interviewerSpecialization) return false;
+  const specLower = interviewerSpecialization.toLowerCase();
+  const titleLower = (trackTitle || '').toLowerCase().trim();
+  const domainLower = (trackDomain || '').toLowerCase().trim();
+
+  if (titleLower && specLower.includes(titleLower)) return true;
+  if (domainLower && specLower.includes(domainLower)) return true;
+
+  const parts = specLower.split(',').map(s => s.trim()).filter(Boolean);
+  for (const part of parts) {
+    if (titleLower && (part.includes(titleLower) || titleLower.includes(part))) return true;
+    if (domainLower && (part.includes(domainLower) || domainLower.includes(part))) return true;
+  }
+  return false;
+}
+
 // ==========================================
 // INTERVIEW SLOTS (PostgreSQL Backed)
 // ==========================================
-async function fetchSlotsFromPg(interviewerEmail, domainFilter) {
+async function fetchSlotsFromPg(interviewerEmail, domainFilter, trackId) {
   try {
     let url = API_BASE + '/slots?_t=' + Date.now();
     if (interviewerEmail) url += '&interviewerEmail=' + encodeURIComponent(interviewerEmail);
     if (domainFilter && domainFilter !== 'all') url += '&domain=' + encodeURIComponent(domainFilter);
+    if (trackId) url += '&trackId=' + encodeURIComponent(trackId);
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -603,13 +622,14 @@ function saveSlots(slots) {
 // ==========================================
 // PIPELINE (PostgreSQL Backed)
 // ==========================================
-async function fetchPipelineFromPg(track, status) {
+async function fetchPipelineFromPg(track, status, interviewerEmail) {
   try {
-    let url = API_BASE + '/pipeline';
+    let url = API_BASE + '/pipeline?_t=' + Date.now();
     const params = [];
     if (track && track !== 'all') params.push('track=' + encodeURIComponent(track));
     if (status && status !== 'all') params.push('status=' + encodeURIComponent(status));
-    if (params.length > 0) url += '?' + params.join('&');
+    if (interviewerEmail) params.push('interviewerEmail=' + encodeURIComponent(interviewerEmail));
+    if (params.length > 0) url += '&' + params.join('&');
 
     const res = await fetch(url);
     if (res.ok) {

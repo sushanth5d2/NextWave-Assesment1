@@ -361,7 +361,7 @@
 
     async function renderSchedule() {
       await populateScheduleTrackFilter();
-      const pipeline = await fetchPipelineFromPg();
+      const pipeline = await fetchPipelineFromPg(null, null, currentUser.email);
       const trackFilter = document.getElementById('scheduleTrackFilter') ? document.getElementById('scheduleTrackFilter').value : 'all';
       const statusFilterEl = document.getElementById('scheduleStatusFilter');
       const statusFilter = statusFilterEl ? statusFilterEl.value : 'pending';
@@ -371,6 +371,16 @@
 
       const relevant = pipeline.filter(item => {
         if (item.status === 'Not Booked') return false;
+
+        // Strict Evaluator Domain & Assignment Isolation
+        if (currentUser.role !== 'admin') {
+          const isAssignedToMe = item.interviewerEmail && item.interviewerEmail.toLowerCase() === currentUser.email.toLowerCase();
+          const isNameMatch = item.interviewer && item.interviewer.toLowerCase() === currentUser.name.toLowerCase();
+          // Never show interviews assigned to other evaluators or outside domain
+          if (!isAssignedToMe && !isNameMatch) {
+            return false;
+          }
+        }
 
         const isEval = ['Passed', 'Failed', 'Retake', 'Flagged'].includes(item.status);
         if (statusFilter === 'pending' && isEval) return false;
@@ -1026,7 +1036,7 @@
     }
 
     async function renderHistory() {
-      const pipeline = await fetchPipelineFromPg();
+      const pipeline = await fetchPipelineFromPg(null, null, currentUser.email);
       const filter = document.getElementById('historyOutcomeFilter') ? document.getElementById('historyOutcomeFilter').value : 'all';
       const searchEl = document.getElementById('historySearchInput');
       const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
@@ -1037,6 +1047,13 @@
         const isEval = ['Passed', 'Failed', 'Retake', 'Flagged'].includes(item.status);
         const matchesFilter = filter === 'all' || item.status === filter;
         if (!isEval || !matchesFilter) return false;
+
+        // Scoped to this evaluator
+        if (currentUser.role !== 'admin') {
+          const isAssignedToMe = item.interviewerEmail && item.interviewerEmail.toLowerCase() === currentUser.email.toLowerCase();
+          const isNameMatch = item.interviewer && item.interviewer.toLowerCase() === currentUser.name.toLowerCase();
+          if (!isAssignedToMe && !isNameMatch) return false;
+        }
 
         if (query) {
           const matchName = (item.name || '').toLowerCase().includes(query);
@@ -1081,10 +1098,15 @@
     }
 
     async function updateMetrics(pipelineData) {
-      const pipeline = pipelineData || await fetchPipelineFromPg();
-      const slots = await fetchSlotsFromPg();
+      const pipeline = pipelineData || await fetchPipelineFromPg(null, null, currentUser.email);
+      const slots = await fetchSlotsFromPg(currentUser.email);
 
-      const assignedCount = pipeline.filter(p => p.status !== 'Not Booked').length;
+      const assignedCount = pipeline.filter(p => {
+        if (p.status === 'Not Booked') return false;
+        if (currentUser.role === 'admin') return true;
+        return (p.interviewerEmail && p.interviewerEmail.toLowerCase() === currentUser.email.toLowerCase()) ||
+               (p.interviewer && p.interviewer.toLowerCase() === currentUser.name.toLowerCase());
+      }).length;
       const openCount = slots.filter(s => !s.is_booked && !s.booked).length;
 
       document.getElementById('statTodayTotal').textContent = assignedCount;
@@ -1099,8 +1121,8 @@
     }
 
     async function openInterviewerStatModal(type) {
-      const pipeline = await fetchPipelineFromPg();
-      const slots = await fetchSlotsFromPg();
+      const pipeline = await fetchPipelineFromPg(null, null, currentUser.email);
+      const slots = await fetchSlotsFromPg(currentUser.email);
       const modal = document.getElementById('interviewerDetailModal');
       const titleEl = document.getElementById('interviewerDetailModalTitle');
       const bodyEl = document.getElementById('interviewerDetailModalBody');
