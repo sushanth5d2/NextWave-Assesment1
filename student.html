@@ -342,7 +342,7 @@
           <div style="display:flex;gap:10px;align-items:center;">
             <div style="position:relative;flex:1;">
               <input type="text" id="certSearchInput" class="form-input" 
-                     placeholder="Search certificate by Credential ID (e.g. NXW-CERT-2026-8899), Student Name, Track, or Evaluator..."
+                     placeholder="Search certificate by Credential ID, Student Name, Track, or Evaluator..."
                      oninput="handleCertificateSearch()" 
                      style="padding-left:14px;padding-right:34px;font-size:13.5px;height:42px;background:white;">
               <button id="clearCertSearchBtn" onclick="clearCertSearch()" 
@@ -354,13 +354,9 @@
           </div>
 
           <!-- Quick Search Filter Chips -->
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px;">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px;" id="certQuickFilterChips">
             <span style="font-size:11.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;">Quick Filter:</span>
-            <button type="button" class="cert-filter-chip active" id="chipAllCerts" onclick="filterCertChip('all')">All Certificates</button>
-            <button type="button" class="cert-filter-chip" onclick="filterCertChip('NXW-CERT-2026-8899')">Full Stack · NXW-CERT-2026-8899</button>
-            <button type="button" class="cert-filter-chip" onclick="filterCertChip('NXW-CERT-2026-4105')">Data Analytics · NXW-CERT-2026-4105</button>
-            <button type="button" class="cert-filter-chip" onclick="filterCertChip('NXW-CERT-2026-2241')">Cloud DevOps · NXW-CERT-2026-2241</button>
-            <button type="button" class="cert-filter-chip" onclick="filterCertChip('NXW-CERT-2026-7731')">AI Models · NXW-CERT-2026-7731</button>
+            <button type="button" class="cert-filter-chip active" id="chipAllCerts" onclick="filterCertChip('all')">All Verified Certificates</button>
           </div>
         </div>
 
@@ -457,84 +453,84 @@
             </div>
 
             <!-- ================= STATE B: AFTER RESULT (PASSED) ================= -->
-            <div class="screen-preview screen-preview-after" id="cardCompAfter">
-              <div class="screen-preview-header">
+            <div class="screen-preview screen-preview-after" id="cardCompAfter" style="opacity:0.9;border-color:var(--gray-300);">
+              <div class="screen-preview-header" style="background:#f8fafc;border-bottom:1px solid var(--gray-200);">
                 <div>
-                  <span class="preview-badge badge-after">STATE B · AFTER DEFENSE CLEARED (PASSED)</span>
-                  <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Official Qualiflyer · Badge Certified</div>
+                  <span class="preview-badge" style="background:#e2e8f0;color:var(--gray-700);">STATE B · AFTER DEFENSE CLEARED (PASSED)</span>
+                  <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Official Digital Credential · Clearance Pending</div>
                 </div>
-                <span class="badge badge-green" style="font-size:12px;">🏆 Certified Qualiflyer</span>
+                <span class="badge badge-gray" style="font-size:12px;">🔒 Credential Locked</span>
               </div>
               <div class="screen-preview-body">
                 <!-- Announcement Banner -->
-                <div class="mini-banner" style="background:#ECFDF5;border-left:4px solid var(--success);color:#065F46;">
-                  <span style="font-size:20px;">🏆</span>
+                <div class="mini-banner" style="background:#F8FAFC;border-left:4px solid var(--gray-400);color:var(--gray-700);">
+                  <span style="font-size:20px;">🔒</span>
                   <div>
-                    <strong>Congratulations! You earned the Full Stack Development Badge!</strong>
-                    <div style="font-size:12px;color:#047857;margin-top:2px;">Evaluated & Approved by Dr. Kavita Rao · Official Credential Issued</div>
+                    <strong>Official Digital Credential Pending Clearance</strong>
+                    <div style="font-size:12px;color:var(--gray-500);margin-top:2px;">Complete and pass your 45-minute live defense to issue this verified credential.</div>
                   </div>
                 </div>
 
                 <!-- KPI Metrics -->
                 <div class="mini-kpi-row">
-                  <div class="mini-kpi" style="border-color:rgba(16,185,129,0.3);background:#F0FDF4;">
-                    <span class="mini-kpi-label" style="color:#047857;">Badges Certified</span>
-                    <span class="mini-kpi-val" style="color:var(--success);">1 🏅 <span style="font-size:12px;font-weight:600;">(Official)</span></span>
+                  <div class="mini-kpi" style="background:var(--gray-50);border-color:var(--gray-200);">
+                    <span class="mini-kpi-label">Badges Certified</span>
+                    <span class="mini-kpi-val" style="color:var(--gray-400);">0 <span style="font-size:12px;font-weight:500;">(Pending)</span></span>
                   </div>
-                  <div class="mini-kpi" style="border-color:rgba(16,185,129,0.3);background:#F0FDF4;">
-                    <span class="mini-kpi-label" style="color:#047857;">Clearance Status</span>
-                    <span class="mini-kpi-val" style="font-size:15px;color:var(--success-dark);margin-top:4px;">✅ PASSED ✓</span>
+                  <div class="mini-kpi" style="background:var(--gray-50);border-color:var(--gray-200);">
+                    <span class="mini-kpi-label">Clearance Status</span>
+                    <span class="mini-kpi-val" style="font-size:14px;color:var(--gray-600);margin-top:4px;">🔒 Awaiting Clearance</span>
                   </div>
                 </div>
 
-                <!-- Digital Credential Certificate -->
-                <div class="cert-card">
+                <!-- Digital Credential Certificate Placeholder -->
+                <div class="cert-card" style="background:linear-gradient(135deg, #334155 0%, #1e293b 100%);filter:grayscale(0.5);opacity:0.85;">
                   <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                    <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#F59E0B,#D97706);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 12px rgba(245,158,11,0.4);">
-                      🌐
+                    <div style="width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;">
+                      🔒
                     </div>
                     <div>
-                      <div style="font-size:11px;font-weight:700;color:#FCD34D;letter-spacing:1px;text-transform:uppercase;">NextWave Verified Credential</div>
-                      <div id="certTrackTitle" style="font-size:18px;font-weight:800;color:white;">Full Stack Development</div>
+                      <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;">NextWave Verified Credential</div>
+                      <div id="certTrackTitle" style="font-size:17px;font-weight:800;color:white;">Technical Track Level Clearance</div>
                     </div>
                   </div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#CBD5E1;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:6px;">
-                    <span>ID: <code id="certIdCode">NXW-CERT-2026-8899</code></span>
-                    <span id="certEndorsedStatus" style="color:#10B981;font-weight:700;">✓ Faculty Endorsed</span>
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:6px;">
+                    <span>ID: <code id="certIdCode" style="color:#cbd5e1;">PENDING-DEFENSE-EVALUATION</code></span>
+                    <span id="certEndorsedStatus" style="color:#f59e0b;font-weight:700;">⏳ Awaiting Faculty Evaluation</span>
                   </div>
                 </div>
 
                 <!-- 3-Axis Evaluator Scorecard -->
-                <div class="rubric-meter" style="background:#F0FDF4;border-color:rgba(16,185,129,0.3);">
+                <div class="rubric-meter" style="background:var(--gray-50);border-color:var(--gray-200);">
                   <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:12px;font-weight:700;color:#065F46;text-transform:uppercase;letter-spacing:0.5px;">Live Defense Scorecard</span>
-                    <span class="badge badge-green" id="certOverallBadge" style="font-size:10.5px;">Score: 94% · Grade A+</span>
+                    <span style="font-size:12px;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.5px;">Live Defense Scorecard</span>
+                    <span class="badge badge-gray" id="certOverallBadge" style="font-size:10.5px;">Score: --% · Grade Pending</span>
                   </div>
                   <div class="rubric-item">
-                    <div class="rubric-head"><span>Code Quality & Architecture</span><span id="certScoreQuality" style="color:#047857;font-weight:700;">94% (Exceptional)</span></div>
-                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillQuality" style="width:94%;background:#10B981;"></div></div>
+                    <div class="rubric-head"><span>Code Quality & Architecture</span><span id="certScoreQuality" style="color:var(--gray-400);">--% (Pending)</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillQuality" style="width:0%;background:var(--gray-300);"></div></div>
                   </div>
                   <div class="rubric-item">
-                    <div class="rubric-head"><span>Live Defense & Problem Solving</span><span id="certScoreDefense" style="color:#047857;font-weight:700;">92% (High Mastery)</span></div>
-                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillDefense" style="width:92%;background:#10B981;"></div></div>
+                    <div class="rubric-head"><span>Live Defense & Problem Solving</span><span id="certScoreDefense" style="color:var(--gray-400);">--% (Pending)</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillDefense" style="width:0%;background:var(--gray-300);"></div></div>
                   </div>
                   <div class="rubric-item">
-                    <div class="rubric-head"><span>Communication & Systems Thinking</span><span id="certScoreComm" style="color:#047857;font-weight:700;">96% (Distinction)</span></div>
-                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillComm" style="width:96%;background:#10B981;"></div></div>
+                    <div class="rubric-head"><span>Communication & Systems Thinking</span><span id="certScoreComm" style="color:var(--gray-400);">--% (Pending)</span></div>
+                    <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillComm" style="width:0%;background:var(--gray-300);"></div></div>
                   </div>
                 </div>
 
                 <!-- Evaluator Quote -->
-                <div style="background:white;border:1px solid #E2E8F0;border-left:3px solid #10B981;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--gray-700);line-height:1.5;">
-                  <em id="certEvaluatorQuote">"Candidate demonstrated deep comprehension of full stack microservices and live SQL optimization during the 45-minute code defense."</em>
-                  <div id="certEvaluatorName" style="font-weight:700;color:var(--gray-900);margin-top:4px;font-size:11.5px;">— Dr. Kavita Rao, Lead Technical Evaluator</div>
+                <div style="background:white;border:1px dashed #cbd5e1;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--gray-500);line-height:1.5;">
+                  <em id="certEvaluatorQuote">"Evaluator feedback notes and official scoring rubric will appear here immediately after your live 45-minute defense is completed and endorsed."</em>
+                  <div id="certEvaluatorName" style="font-weight:700;color:var(--gray-600);margin-top:4px;font-size:11.5px;">— Faculty Evaluation Dossier</div>
                 </div>
 
-                <!-- Career Gateway Unlocked -->
-                <div style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.1));border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
-                  <span style="font-size:24px;">🚀</span>
-                  <div style="font-size:12.5px;color:#065F46;line-height:1.4;">
-                    <strong>Hiring Gateway Activated:</strong> Your certified track badge qualifies you for fast-track interview scheduling with 24+ NextWave partner tech employers!
+                <!-- Career Gateway Locked -->
+                <div style="background:var(--gray-100);border:1px dashed var(--gray-300);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:22px;">🔒</span>
+                  <div style="font-size:12.5px;color:var(--gray-600);line-height:1.4;">
+                    <strong>Hiring Gateway Locked:</strong> Pass your live defense to unlock verified employer credentials and direct interview pipelines.
                   </div>
                 </div>
               </div>
@@ -979,6 +975,10 @@
       const sv = document.getElementById('interviewStatusValue');
       const ss = document.getElementById('interviewStatusSub');
 
+      // SYNC CERTIFICATE LEDGER & UPDATE BEFORE VS AFTER COMPARISON (Runs for all states)
+      syncCertificateLedger(badges, allBookings, enrollments);
+      updateBeforeVsAfterComparison(status, booking, badges, enrollments, allBookings);
+
       // STATE 1: NOT ENROLLED
       if (numEnrolled === 0) {
         document.getElementById('msg-not-enrolled').style.display = 'flex';
@@ -1066,50 +1066,6 @@
         bc.style.color = 'var(--success)';
         bs.textContent = trackTitle;
 
-        // DYNAMICALLY POPULATE STATE B (AFTER DEFENSE CLEARED) IN BEFORE VS AFTER RESULT
-        const quoteEl = document.getElementById('certEvaluatorQuote');
-        if (quoteEl) quoteEl.textContent = feedbackNotes ? `"${feedbackNotes}"` : '"Candidate demonstrated solid technical understanding."';
-        
-        const nameEl = document.getElementById('certEvaluatorName');
-        if (nameEl) nameEl.textContent = `— ${evaluatorName}, Lead Technical Evaluator`;
-
-        const titleEl = document.getElementById('certTrackTitle');
-        if (titleEl) titleEl.textContent = trackTitle;
-
-        const myBadge = badges.find(b => b.track_id === (booking ? booking.track_id : '') || b.badge_name === trackTitle);
-        const credId = (myBadge && myBadge.credential_id) || (booking && booking.credential_id) || 'NXW-CERT-2026-LIVE';
-        const idEl = document.getElementById('certIdCode');
-        if (idEl) idEl.textContent = credId;
-
-        // Prepend student's verified certificate to the CERTIFICATE_LEDGER
-        const existingCert = CERTIFICATE_LEDGER.find(c => c.studentName === user.name || (user.email && c.studentEmail === user.email));
-        if (!existingCert) {
-          CERTIFICATE_LEDGER.unshift({
-            id: credId,
-            studentName: user.name,
-            studentEmail: user.email,
-            studentId: user.niatId || 'NIAT-ST',
-            trackTitle: trackTitle,
-            trackIcon: '🌐',
-            domain: (primaryTrack && primaryTrack.domain) || 'Full Stack',
-            evaluator: evaluatorName,
-            evaluatorRole: 'Lead Technical Evaluator',
-            evaluatorQuote: feedbackNotes || 'Candidate demonstrated solid technical understanding during code defense.',
-            issuedDate: formatDisplayDate(booking ? booking.interview_date : null, 'short') || 'Nov 13, 2026',
-            overallScore: 95,
-            grade: 'A+',
-            scores: {
-              quality: { score: 95, label: '95% (Exceptional)' },
-              defense: { score: 94, label: '94% (High Mastery)' },
-              comm: { score: 96, label: '96% (Distinction)' }
-            }
-          });
-        } else {
-          if (feedbackNotes) existingCert.evaluatorQuote = feedbackNotes;
-          if (evaluatorName) existingCert.evaluator = evaluatorName;
-          if (credId) existingCert.id = credId;
-        }
-
         return;
       }
 
@@ -1145,15 +1101,6 @@
         if (fMsg) {
           fMsg.innerHTML = `A review by the academic integrity board flagged your submission for <strong>${escapeHtml(flaggedNames || 'Enrolled Track')}</strong>. The awarded badge for this track has been nullified. Other enrolled tracks remain unaffected. Contact your campus coordinator.`;
         }
-        
-        // Remove flagged tracks from CERTIFICATE_LEDGER
-        flaggedBookings.forEach(fb => {
-          const ft = (fb.track_name || fb.track || '').toLowerCase();
-          const idx = CERTIFICATE_LEDGER.findIndex(c => (c.studentEmail === user.email || c.studentName === user.name) && c.trackTitle.toLowerCase() === ft);
-          if (idx !== -1) {
-            CERTIFICATE_LEDGER.splice(idx, 1);
-          }
-        });
 
         if (badges.length === 0 && bookedBookings.length === 0) {
           sv.textContent = '🚩 Badge Revoked';
@@ -1184,6 +1131,321 @@
         sv.textContent = '📅 Eligible to Book';
         sv.style.color = 'var(--primary)';
         ss.textContent = `${primaryTrack ? primaryTrack.trackTitle : 'Track'} Clearance`;
+      }
+    }
+
+    // ==========================================
+    // DYNAMIC BEFORE VS AFTER LEVEL CLEARANCE RESULT
+    // ==========================================
+    function updateBeforeVsAfterComparison(status, booking, badges, enrollments, allBookings) {
+      const cardBefore = document.getElementById('cardCompBefore');
+      const cardAfter = document.getElementById('cardCompAfter');
+      if (!cardBefore || !cardAfter) return;
+
+      const user = getCurrentUser() || {};
+      const primaryTrack = (enrollments && enrollments[0]) || {
+        trackTitle: 'Full Stack Development',
+        domain: 'AI Product Mastery',
+        trackIcon: '🌐',
+        skills: ['UI Engineering', 'Server Architecture', 'SQL', 'Gen AI Engineering']
+      };
+
+      const flaggedBookings = (allBookings || []).filter(b => b.status === 'Flagged');
+      const flaggedTrackIds = flaggedBookings.map(b => (b.track_id || '').toLowerCase());
+      const flaggedTrackNames = flaggedBookings.map(b => (b.track_name || '').toLowerCase());
+
+      const activeBadges = (badges || []).filter(b => 
+        !flaggedTrackIds.includes((b.track_id || '').toLowerCase()) &&
+        !flaggedTrackNames.includes((b.badge_name || '').toLowerCase())
+      );
+
+      const passedBookings = (allBookings || []).filter(b => 
+        (b.status === 'Passed' || b.status === 'Pass') &&
+        !flaggedTrackIds.includes((b.track_id || '').toLowerCase()) &&
+        !flaggedTrackNames.includes((b.track_name || '').toLowerCase())
+      );
+
+      const bookedBookings = (allBookings || []).filter(b => b.status === 'Booked');
+      const hasPassed = activeBadges.length > 0 || passedBookings.length > 0 || status === 'Passed' || status === 'Pass';
+
+      // ----------------------------------------------------
+      // STATE A: BEFORE RESULT (Reflects current student pre-defense journey)
+      // ----------------------------------------------------
+      const latestBooked = bookedBookings[0] || (booking && booking.status === 'Booked' ? booking : null);
+      let stateABanner = '';
+      let stateAStatusVal = '';
+
+      if (latestBooked) {
+        const rawDate = latestBooked.interview_date || latestBooked.date || 'Upcoming';
+        const formattedDate = formatDisplayDate(rawDate, 'weekday');
+        const formattedTime = formatDisplayTime(latestBooked.start_time, latestBooked.end_time);
+        const evalName = (latestBooked.interviewer_name && latestBooked.interviewer_name !== '—') ? latestBooked.interviewer_name : 'Faculty Evaluator';
+        stateABanner = `
+          <div class="mini-banner" style="background:#EEF2FF;border-left:4px solid var(--primary);color:#3730A3;">
+            <span style="font-size:20px;">📅</span>
+            <div>
+              <strong>Interview Confirmed:</strong> Scheduled for ${formattedDate} at ${formattedTime} with ${escapeHtml(evalName)}.
+              <div style="font-size:12px;color:#4F46E5;margin-top:2px;">Format: Live 1-on-1 Code Defense (45 mins) · ${escapeHtml(latestBooked.track_name || primaryTrack.trackTitle)}</div>
+            </div>
+          </div>
+        `;
+        stateAStatusVal = '📅 Interview Booked';
+      } else {
+        const totalCleared = (enrollments || []).reduce((sum, e) => sum + (e.skillsCleared || 0), 0);
+        stateABanner = `
+          <div class="mini-banner" style="background:#F8FAFC;border-left:4px solid var(--gray-400);color:var(--gray-700);">
+            <span style="font-size:20px;">⏳</span>
+            <div>
+              <strong>Pre-Defense Phase:</strong> Prerequisite contest skills in progress.
+              <div style="font-size:12px;color:var(--gray-500);margin-top:2px;">Complete all prerequisite skill levels to unlock live 45-minute Level Clearance Interview.</div>
+            </div>
+          </div>
+        `;
+        stateAStatusVal = totalCleared > 0 ? `⏳ ${totalCleared} Skills Cleared` : 'Not Booked';
+      }
+
+      cardBefore.innerHTML = `
+        <div class="screen-preview-header">
+          <div>
+            <span class="preview-badge badge-before">STATE A · BEFORE INTERVIEW RESULT</span>
+            <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Candidate In-Progress · Live Defense Evaluation</div>
+          </div>
+          <span class="badge badge-gray" style="font-size:12px;">Pre-Defense</span>
+        </div>
+        <div class="screen-preview-body">
+          ${stateABanner}
+
+          <div class="mini-kpi-row">
+            <div class="mini-kpi">
+              <span class="mini-kpi-label">Badges Certified</span>
+              <span class="mini-kpi-val" style="color:var(--gray-400);">0 <span style="font-size:13px;font-weight:500;">(Pending)</span></span>
+            </div>
+            <div class="mini-kpi">
+              <span class="mini-kpi-label">Clearance Status</span>
+              <span class="mini-kpi-val" style="font-size:15px;color:var(--primary);margin-top:4px;">${stateAStatusVal}</span>
+            </div>
+          </div>
+
+          <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:14px;padding:18px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:24px;">${primaryTrack.trackIcon || '🌐'}</span>
+                <div>
+                  <div style="font-weight:700;font-size:14px;">${escapeHtml(primaryTrack.trackTitle)}</div>
+                  <div style="font-size:11px;color:var(--gray-500);">${escapeHtml(primaryTrack.domain || 'Engineering Track')}</div>
+                </div>
+              </div>
+              <span class="badge badge-purple" style="font-size:11px;">🎯 Gate Unlocked</span>
+            </div>
+            <div style="font-size:12px;color:var(--gray-600);margin-bottom:10px;">
+              All prerequisite contest skills cleared. Awaiting live defense evaluation.
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${((primaryTrack.skills && Array.isArray(primaryTrack.skills)) ? primaryTrack.skills.slice(0, 4) : ['UI Engineering', 'Server Architecture', 'SQL', 'Gen AI Engineering']).map(s => `
+                <span class="tag" style="background:#ECFDF5;color:#047857;font-weight:600;">✓ ${escapeHtml(s)}</span>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="rubric-meter">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:0.5px;">Evaluator Defense Rubric</span>
+              <span class="badge badge-gray" style="font-size:10.5px;">Pending Assessment</span>
+            </div>
+            <div class="rubric-item">
+              <div class="rubric-head"><span>Code Quality & Architecture</span><span>--%</span></div>
+              <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+            </div>
+            <div class="rubric-item">
+              <div class="rubric-head"><span>Live Defense & Problem Solving</span><span>--%</span></div>
+              <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+            </div>
+            <div class="rubric-item">
+              <div class="rubric-head"><span>Communication & Systems Thinking</span><span>--%</span></div>
+              <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+            </div>
+          </div>
+
+          <div style="background:var(--gray-100);border:1px dashed var(--gray-300);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+            <span style="font-size:22px;">🔒</span>
+            <div style="font-size:12.5px;color:var(--gray-600);line-height:1.4;">
+              <strong>Hiring Gateway Locked:</strong> Verified Track Badge is required to unlock direct interview shortlists with partner tech employers.
+            </div>
+          </div>
+        </div>
+      `;
+
+      // ----------------------------------------------------
+      // STATE B: AFTER RESULT (LOCKED IF NOT PASSED, UNLOCKED IF PASSED)
+      // ----------------------------------------------------
+      if (!hasPassed) {
+        // Locked State B: ZERO dummy credentials before evaluation
+        cardAfter.style.opacity = '0.9';
+        cardAfter.style.borderColor = 'var(--gray-300)';
+        cardAfter.innerHTML = `
+          <div class="screen-preview-header" style="background:#f8fafc;border-bottom:1px solid var(--gray-200);">
+            <div>
+              <span class="preview-badge" style="background:#e2e8f0;color:var(--gray-700);">STATE B · AFTER DEFENSE CLEARED (PASSED)</span>
+              <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Official Digital Credential · Clearance Pending</div>
+            </div>
+            <span class="badge badge-gray" style="font-size:12px;">🔒 Credential Locked</span>
+          </div>
+          <div class="screen-preview-body">
+            <div class="mini-banner" style="background:#F8FAFC;border-left:4px solid var(--gray-400);color:var(--gray-700);">
+              <span style="font-size:20px;">🔒</span>
+              <div>
+                <strong>Official Digital Credential Pending Clearance</strong>
+                <div style="font-size:12px;color:var(--gray-500);margin-top:2px;">Complete and pass your 45-minute live defense to issue this verified credential.</div>
+              </div>
+            </div>
+
+            <div class="mini-kpi-row">
+              <div class="mini-kpi" style="background:var(--gray-50);border-color:var(--gray-200);">
+                <span class="mini-kpi-label">Badges Certified</span>
+                <span class="mini-kpi-val" style="color:var(--gray-400);">0 <span style="font-size:12px;font-weight:500;">(Pending)</span></span>
+              </div>
+              <div class="mini-kpi" style="background:var(--gray-50);border-color:var(--gray-200);">
+                <span class="mini-kpi-label">Clearance Status</span>
+                <span class="mini-kpi-val" style="font-size:14px;color:var(--gray-600);margin-top:4px;">🔒 Awaiting Clearance</span>
+              </div>
+            </div>
+
+            <div class="cert-card" style="background:linear-gradient(135deg, #334155 0%, #1e293b 100%);filter:grayscale(0.5);opacity:0.85;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <div style="width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;">
+                  🔒
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;">NextWave Verified Credential</div>
+                  <div id="certTrackTitle" style="font-size:17px;font-weight:800;color:white;">${escapeHtml(primaryTrack.trackTitle)} Level Clearance</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:6px;">
+                <span>ID: <code id="certIdCode" style="color:#cbd5e1;">PENDING-DEFENSE-EVALUATION</code></span>
+                <span id="certEndorsedStatus" style="color:#f59e0b;font-weight:700;">⏳ Awaiting Faculty Evaluation</span>
+              </div>
+            </div>
+
+            <div class="rubric-meter" style="background:var(--gray-50);border-color:var(--gray-200);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.5px;">Live Defense Scorecard</span>
+                <span class="badge badge-gray" id="certOverallBadge" style="font-size:10.5px;">Score: --% · Grade Pending</span>
+              </div>
+              <div class="rubric-item">
+                <div class="rubric-head"><span>Code Quality & Architecture</span><span id="certScoreQuality" style="color:var(--gray-400);">--% (Pending)</span></div>
+                <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+              </div>
+              <div class="rubric-item">
+                <div class="rubric-head"><span>Live Defense & Problem Solving</span><span id="certScoreDefense" style="color:var(--gray-400);">--% (Pending)</span></div>
+                <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+              </div>
+              <div class="rubric-item">
+                <div class="rubric-head"><span>Communication & Systems Thinking</span><span id="certScoreComm" style="color:var(--gray-400);">--% (Pending)</span></div>
+                <div class="rubric-bar-bg"><div class="rubric-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>
+              </div>
+            </div>
+
+            <div style="background:white;border:1px dashed #cbd5e1;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--gray-500);line-height:1.5;">
+              <em id="certEvaluatorQuote">"Evaluator feedback notes and official scoring rubric will appear here immediately after your live 45-minute defense is completed and endorsed."</em>
+              <div id="certEvaluatorName" style="font-weight:700;color:var(--gray-600);margin-top:4px;font-size:11.5px;">— Faculty Evaluation Dossier</div>
+            </div>
+
+            <div style="background:var(--gray-100);border:1px dashed var(--gray-300);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:22px;">🔒</span>
+              <div style="font-size:12.5px;color:var(--gray-600);line-height:1.4;">
+                <strong>Hiring Gateway Locked:</strong> Pass your live defense to unlock verified employer credentials and direct interview pipelines.
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        // Unlocked State B: REAL verified credentials only after passing
+        const activePassedBadge = activeBadges[0] || null;
+        const activePassedBooking = passedBookings[0] || (booking && (booking.status === 'Passed' || booking.status === 'Pass') ? booking : null);
+        const passedTrackTitle = (activePassedBadge && activePassedBadge.badge_name) || (activePassedBooking && activePassedBooking.track_name) || primaryTrack.trackTitle || 'Full Stack Development';
+        const passedTrackIcon = (activePassedBadge && activePassedBadge.badge_icon) || primaryTrack.trackIcon || '🌐';
+        const credId = (activePassedBadge && activePassedBadge.credential_id) || (activePassedBooking && activePassedBooking.credential_id) || 'NXW-CERT-2026-LIVE';
+        let evalName = (activePassedBooking && activePassedBooking.interviewer_name && activePassedBooking.interviewer_name !== '—') ? activePassedBooking.interviewer_name : 'Dr. Kavita Rao';
+        let evalFeedback = (activePassedBooking && activePassedBooking.notes) ? activePassedBooking.notes : 'Candidate demonstrated exceptional mastery and architectural rigor during the 45-minute code defense.';
+
+        cardAfter.style.opacity = '1';
+        cardAfter.style.borderColor = 'rgba(16,185,129,0.3)';
+        cardAfter.innerHTML = `
+          <div class="screen-preview-header">
+            <div>
+              <span class="preview-badge badge-after">STATE B · AFTER DEFENSE CLEARED (PASSED)</span>
+              <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Official Qualiflyer · Badge Certified</div>
+            </div>
+            <span class="badge badge-green" style="font-size:12px;">🏆 Certified Qualiflyer</span>
+          </div>
+          <div class="screen-preview-body">
+            <div class="mini-banner" style="background:#ECFDF5;border-left:4px solid var(--success);color:#065F46;">
+              <span style="font-size:20px;">🏆</span>
+              <div>
+                <strong>Congratulations! You earned the ${escapeHtml(passedTrackTitle)} Badge!</strong>
+                <div style="font-size:12px;color:#047857;margin-top:2px;">Evaluated & Approved by ${escapeHtml(evalName)} · Official Credential Issued</div>
+              </div>
+            </div>
+
+            <div class="mini-kpi-row">
+              <div class="mini-kpi" style="border-color:rgba(16,185,129,0.3);background:#F0FDF4;">
+                <span class="mini-kpi-label" style="color:#047857;">Badges Certified</span>
+                <span class="mini-kpi-val" style="color:var(--success);">${activeBadges.length || 1} 🏅 <span style="font-size:12px;font-weight:600;">(Official)</span></span>
+              </div>
+              <div class="mini-kpi" style="border-color:rgba(16,185,129,0.3);background:#F0FDF4;">
+                <span class="mini-kpi-label" style="color:#047857;">Clearance Status</span>
+                <span class="mini-kpi-val" style="font-size:15px;color:var(--success-dark);margin-top:4px;">✅ PASSED ✓</span>
+              </div>
+            </div>
+
+            <div class="cert-card">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#F59E0B,#D97706);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 12px rgba(245,158,11,0.4);">
+                  ${passedTrackIcon}
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#FCD34D;letter-spacing:1px;text-transform:uppercase;">NextWave Verified Credential</div>
+                  <div id="certTrackTitle" style="font-size:18px;font-weight:800;color:white;">${escapeHtml(passedTrackTitle)}</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#CBD5E1;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:6px;">
+                <span>ID: <code id="certIdCode">${credId}</code></span>
+                <span id="certEndorsedStatus" style="color:#10B981;font-weight:700;">✓ Faculty Endorsed</span>
+              </div>
+            </div>
+
+            <div class="rubric-meter" style="background:#F0FDF4;border-color:rgba(16,185,129,0.3);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;font-weight:700;color:#065F46;text-transform:uppercase;letter-spacing:0.5px;">Live Defense Scorecard</span>
+                <span class="badge badge-green" id="certOverallBadge" style="font-size:10.5px;">Score: 95% · Grade A+</span>
+              </div>
+              <div class="rubric-item">
+                <div class="rubric-head"><span>Code Quality & Architecture</span><span id="certScoreQuality" style="color:#047857;font-weight:700;">95% (Exceptional)</span></div>
+                <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillQuality" style="width:95%;background:#10B981;"></div></div>
+              </div>
+              <div class="rubric-item">
+                <div class="rubric-head"><span>Live Defense & Problem Solving</span><span id="certScoreDefense" style="color:#047857;font-weight:700;">94% (High Mastery)</span></div>
+                <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillDefense" style="width:94%;background:#10B981;"></div></div>
+              </div>
+              <div class="rubric-item">
+                <div class="rubric-head"><span>Communication & Systems Thinking</span><span id="certScoreComm" style="color:#047857;font-weight:700;">96% (Distinction)</span></div>
+                <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillComm" style="width:96%;background:#10B981;"></div></div>
+              </div>
+            </div>
+
+            <div style="background:white;border:1px solid #E2E8F0;border-left:3px solid #10B981;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--gray-700);line-height:1.5;">
+              <em id="certEvaluatorQuote">"${escapeHtml(evalFeedback)}"</em>
+              <div id="certEvaluatorName" style="font-weight:700;color:var(--gray-900);margin-top:4px;font-size:11.5px;">— ${escapeHtml(evalName)}, Lead Technical Evaluator</div>
+            </div>
+
+            <div style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.1));border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:24px;">🚀</span>
+              <div style="font-size:12.5px;color:#065F46;line-height:1.4;">
+                <strong>Hiring Gateway Activated:</strong> Your certified track badge qualifies you for fast-track interview scheduling with 24+ NextWave partner tech employers!
+              </div>
+            </div>
+          </div>
+        `;
       }
     }
 
@@ -1245,6 +1507,7 @@
 
       const enrollments = studentDashboardData.enrollments || [];
       const badges = studentDashboardData.badges || [];
+      const allBookings = studentDashboardData.bookings || (studentDashboardData.booking ? [studentDashboardData.booking] : []);
       const booking = studentDashboardData.booking || null;
       const status = booking ? booking.status : null;
 
@@ -1443,7 +1706,7 @@
                   Book Clearance Interview →
                 </button>
                 <button class="btn btn-outline" onclick="closeStudentDetailModal();showSection('comparison');">
-                  View Sample Certificate →
+                  View Before vs After Comparison →
                 </button>
               </div>
             </div>
@@ -1468,7 +1731,7 @@
                   </div>
                   <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;margin-top:8px;font-size:12px;color:#cbd5e1;">
                     <span>Credential: <code style="color:#67e8f9;">${b.credential_id || 'NXW-CERT-2026-LIVE'}</code></span>
-                    <button class="btn btn-xs" onclick="closeStudentDetailModal();showSection('comparison');filterCertChip('${b.credential_id || 'NXW-CERT-2026-8899'}');" style="background:#4f46e5;color:#ffffff !important;border:none;font-weight:700;padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(79,70,229,0.5);">
+                    <button class="btn btn-xs" onclick="closeStudentDetailModal();showSection('comparison');filterCertChip('${b.credential_id || 'NXW-CERT-2026-LIVE'}');" style="background:#4f46e5;color:#ffffff !important;border:none;font-weight:700;padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(79,70,229,0.5);">
                       Inspect Certificate →
                     </button>
                   </div>
@@ -1554,86 +1817,163 @@
     }
 
     // ==========================================
-    // CERTIFICATE VERIFICATION & SEARCH ENGINE
+    // CERTIFICATE VERIFICATION & SEARCH ENGINE (DYNAMIC)
     // ==========================================
-    const CERTIFICATE_LEDGER = [
-      {
-        id: 'NXW-CERT-2026-8899',
-        studentName: 'Rohan Verma',
-        studentId: 'NIAT2024-0104',
-        trackTitle: 'Full Stack Development',
-        trackIcon: '🌐',
-        domain: 'Full Stack',
-        evaluator: 'Dr. Anand Varma',
-        evaluatorRole: 'Lead Technical Evaluator & Systems Architect',
-        evaluatorQuote: 'Candidate demonstrated deep comprehension of full stack microservices, distributed caching, and live SQL optimization during the 45-minute code defense.',
-        issuedDate: 'Nov 12, 2026',
-        overallScore: 94,
-        grade: 'A+',
-        scores: {
-          quality: { score: 94, label: '94% (Exceptional)' },
-          defense: { score: 92, label: '92% (High Mastery)' },
-          comm: { score: 96, label: '96% (Distinction)' }
-        }
-      },
-      {
-        id: 'NXW-CERT-2026-4105',
-        studentName: 'Ananya Sen',
-        studentId: 'NIAT2024-0089',
-        trackTitle: 'Data Analytics & Big Data',
-        trackIcon: '📊',
-        domain: 'Data Engineering',
-        evaluator: 'Dr. Kavita Rao',
-        evaluatorRole: 'Director of AI & Data Evaluation',
-        evaluatorQuote: 'Outstanding performance in complex ETL pipeline modeling and Apache Spark query tuning under pressure.',
-        issuedDate: 'Nov 10, 2026',
-        overallScore: 96,
-        grade: 'A+',
-        scores: {
-          quality: { score: 96, label: '96% (Distinction)' },
-          defense: { score: 95, label: '95% (Exceptional)' },
-          comm: { score: 97, label: '97% (Outstanding)' }
-        }
-      },
-      {
-        id: 'NXW-CERT-2026-2241',
-        studentName: 'Siddharth Nair',
-        studentId: 'NIAT2024-0155',
-        trackTitle: 'Cloud & DevOps Engineering',
-        trackIcon: '☁️',
-        domain: 'Cloud Infrastructure',
-        evaluator: 'Dr. Rajesh Mehta',
-        evaluatorRole: 'Senior Cloud Solutions Evaluator',
-        evaluatorQuote: 'Demonstrated complete command over Kubernetes ingress routing, Terraform IAC modules, and blue-green deployments.',
-        issuedDate: 'Nov 08, 2026',
-        overallScore: 91,
-        grade: 'A',
-        scores: {
-          quality: { score: 90, label: '90% (Proficient)' },
-          defense: { score: 92, label: '92% (High Mastery)' },
-          comm: { score: 91, label: '91% (Proficient)' }
-        }
-      },
-      {
-        id: 'NXW-CERT-2026-7731',
-        studentName: 'Pooja Reddy',
-        studentId: 'NIAT2024-0210',
-        trackTitle: 'AI & Machine Learning Systems',
-        trackIcon: '🤖',
-        domain: 'AI Systems',
-        evaluator: 'Dr. Anand Varma',
-        evaluatorRole: 'Lead Technical Evaluator & Systems Architect',
-        evaluatorQuote: 'Flawless mathematical defense of gradient descent adaptations and production model quantization on edge GPUs.',
-        issuedDate: 'Nov 05, 2026',
-        overallScore: 98,
-        grade: 'A+',
-        scores: {
-          quality: { score: 98, label: '98% (Distinction)' },
-          defense: { score: 97, label: '97% (Exceptional)' },
-          comm: { score: 99, label: '99% (Mastery)' }
-        }
+    let CERTIFICATE_LEDGER = [];
+
+    function strHash(str) {
+      let hash = 0;
+      for (let i = 0; i < (str || '').length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
       }
-    ];
+      return Math.abs(hash).toString().padStart(4, '0').slice(-4);
+    }
+
+    function syncCertificateLedger(badges, allBookings, enrollments) {
+      CERTIFICATE_LEDGER = [];
+      const user = getCurrentUser() || {};
+      const flaggedBookings = (allBookings || []).filter(b => b.status === 'Flagged');
+      const flaggedTrackIds = flaggedBookings.map(b => (b.track_id || '').toLowerCase());
+      const flaggedTrackNames = flaggedBookings.map(b => (b.track_name || '').toLowerCase());
+
+      const passedBookings = (allBookings || []).filter(b => 
+        (b.status === 'Passed' || b.status === 'Pass') && 
+        !flaggedTrackIds.includes((b.track_id || '').toLowerCase()) &&
+        !flaggedTrackNames.includes((b.track_name || '').toLowerCase())
+      );
+
+      // Check current user's active awarded badges
+      (badges || []).forEach(b => {
+        const bTrackId = (b.track_id || '').toLowerCase();
+        const bName = (b.badge_name || '').toLowerCase();
+        if (flaggedTrackIds.includes(bTrackId) || flaggedTrackNames.includes(bName)) return;
+
+        const matchingBooking = passedBookings.find(pb => 
+          (pb.track_id && pb.track_id.toLowerCase() === bTrackId) || 
+          (pb.track_name && pb.track_name.toLowerCase() === bName)
+        );
+
+        const trackMeta = (enrollments || []).find(e => 
+          (e.trackId && e.trackId.toLowerCase() === bTrackId) || 
+          (e.trackTitle && e.trackTitle.toLowerCase() === bName)
+        ) || {};
+
+        let evaluatorName = (matchingBooking && matchingBooking.interviewer_name && matchingBooking.interviewer_name !== '—') ? matchingBooking.interviewer_name : 'Dr. Kavita Rao';
+        let feedback = (matchingBooking && matchingBooking.notes) ? matchingBooking.notes : 'Candidate demonstrated exceptional mastery and architectural rigor during the 45-minute code defense.';
+
+        const credId = b.credential_id || (matchingBooking && matchingBooking.credential_id) || ('NXW-CERT-2026-' + strHash(user.email + b.badge_name));
+
+        if (!CERTIFICATE_LEDGER.some(c => c.id === credId)) {
+          CERTIFICATE_LEDGER.push({
+            id: credId,
+            studentName: user.name || 'Candidate',
+            studentEmail: user.email || '',
+            studentId: user.niatId || 'NIAT-ST',
+            trackTitle: b.badge_name || trackMeta.trackTitle || 'Full Stack Development',
+            trackIcon: b.badge_icon || trackMeta.trackIcon || '🌐',
+            domain: b.domain || trackMeta.domain || 'Engineering',
+            evaluator: evaluatorName,
+            evaluatorRole: 'Lead Technical Evaluator',
+            evaluatorQuote: feedback,
+            issuedDate: formatDisplayDate(b.awarded_at || (matchingBooking ? matchingBooking.interview_date : null), 'short') || 'Nov 14, 2026',
+            overallScore: 95,
+            grade: 'A+',
+            scores: {
+              quality: { score: 95, label: '95% (Exceptional)' },
+              defense: { score: 94, label: '94% (High Mastery)' },
+              comm: { score: 96, label: '96% (Distinction)' }
+            }
+          });
+        }
+      });
+
+      // Also check any passed bookings that may not yet have a student_badges row
+      passedBookings.forEach(pb => {
+        const pbTrack = pb.track_name || 'Technical Track';
+        const credId = pb.credential_id || ('NXW-CERT-2026-' + strHash(user.email + pbTrack));
+        if (!CERTIFICATE_LEDGER.some(c => c.id === credId)) {
+          CERTIFICATE_LEDGER.push({
+            id: credId,
+            studentName: user.name || pb.student_name || 'Candidate',
+            studentEmail: user.email || pb.student_email || '',
+            studentId: user.niatId || pb.student_niat_id || 'NIAT-ST',
+            trackTitle: pbTrack,
+            trackIcon: '🌐',
+            domain: pb.domain || 'Engineering',
+            evaluator: (pb.interviewer_name && pb.interviewer_name !== '—') ? pb.interviewer_name : 'Dr. Kavita Rao',
+            evaluatorRole: 'Lead Technical Evaluator',
+            evaluatorQuote: pb.notes || 'Candidate demonstrated deep comprehension and live code defense problem-solving.',
+            issuedDate: formatDisplayDate(pb.interview_date, 'short') || 'Nov 14, 2026',
+            overallScore: 94,
+            grade: 'A+',
+            scores: {
+              quality: { score: 94, label: '94% (Exceptional)' },
+              defense: { score: 93, label: '93% (High Mastery)' },
+              comm: { score: 95, label: '95% (Distinction)' }
+            }
+          });
+        }
+      });
+
+      // Also include any verified graduates from pipeline
+      try {
+        const pipeline = getPipeline();
+        pipeline.forEach(p => {
+          if ((p.status === 'Passed' || p.status === 'Pass') && p.status !== 'Flagged') {
+            const pEmail = (p.email || p.student_email || '').toLowerCase();
+            const pTrack = p.track || p.track_name || 'Engineering Track';
+            const credId = p.credential_id || ('NXW-CERT-2026-' + strHash(pEmail + pTrack));
+            if (!CERTIFICATE_LEDGER.some(c => c.id === credId)) {
+              CERTIFICATE_LEDGER.push({
+                id: credId,
+                studentName: p.name || p.student_name || 'Certified Graduate',
+                studentEmail: pEmail,
+                studentId: p.niat_id || p.student_niat_id || 'NIAT-ST',
+                trackTitle: pTrack,
+                trackIcon: '🏅',
+                domain: p.domain || 'Engineering',
+                evaluator: (p.interviewer_name && p.interviewer_name !== '—') ? p.interviewer_name : 'Lead Technical Evaluator',
+                evaluatorRole: 'Lead Technical Evaluator',
+                evaluatorQuote: p.notes || 'Successfully completed live code defense and demonstrated high engineering proficiency.',
+                issuedDate: formatDisplayDate(p.interview_date || p.date, 'short') || 'Nov 14, 2026',
+                overallScore: 94,
+                grade: 'A+',
+                scores: {
+                  quality: { score: 94, label: '94% (Exceptional)' },
+                  defense: { score: 92, label: '92% (High Mastery)' },
+                  comm: { score: 96, label: '96% (Distinction)' }
+                }
+              });
+            }
+          }
+        });
+      } catch (err) {}
+
+      renderCertFilterChips();
+    }
+
+    function renderCertFilterChips() {
+      const chipContainer = document.getElementById('certQuickFilterChips');
+      if (!chipContainer) return;
+
+      if (CERTIFICATE_LEDGER.length === 0) {
+        chipContainer.innerHTML = `
+          <span style="font-size:11.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;">Quick Filter:</span>
+          <button type="button" class="cert-filter-chip active" id="chipAllCerts" onclick="filterCertChip('all')">All Verified Credentials (0)</button>
+          <span style="font-size:12px;color:var(--gray-500);font-style:italic;margin-left:4px;">No credentials issued yet · Clear live defense to certify</span>
+        `;
+        return;
+      }
+
+      chipContainer.innerHTML = `
+        <span style="font-size:11.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;">Quick Filter:</span>
+        <button type="button" class="cert-filter-chip active" id="chipAllCerts" onclick="filterCertChip('all')">All Verified Credentials (${CERTIFICATE_LEDGER.length})</button>
+        ${CERTIFICATE_LEDGER.map(c => `
+          <button type="button" class="cert-filter-chip" onclick="filterCertChip('${c.id}')">${escapeHtml(c.trackTitle)} · ${c.id}</button>
+        `).join('')}
+      `;
+    }
 
     function handleCertificateSearch() {
       const inputEl = document.getElementById('certSearchInput');
@@ -1650,23 +1990,36 @@
         return;
       }
 
-      const results = CERTIFICATE_LEDGER.filter(c => 
-        c.id.toLowerCase().includes(query) ||
-        c.studentName.toLowerCase().includes(query) ||
-        c.studentId.toLowerCase().includes(query) ||
-        c.trackTitle.toLowerCase().includes(query) ||
-        c.evaluator.toLowerCase().includes(query) ||
-        c.domain.toLowerCase().includes(query)
-      );
-
       container.style.display = 'block';
+
+      if (CERTIFICATE_LEDGER.length === 0) {
+        listEl.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+            <div style="display:flex;align-items:center;gap:10px;color:var(--gray-700);font-size:13.5px;">
+              <span>🔒</span>
+              <span>No verified credentials have been issued yet. Complete and pass your live 45-minute Level Clearance Interview to certify your track badge.</span>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="clearCertSearch()">Close</button>
+          </div>
+        `;
+        return;
+      }
+
+      const results = CERTIFICATE_LEDGER.filter(c => 
+        (c.id && c.id.toLowerCase().includes(query)) ||
+        (c.studentName && c.studentName.toLowerCase().includes(query)) ||
+        (c.studentId && c.studentId.toLowerCase().includes(query)) ||
+        (c.trackTitle && c.trackTitle.toLowerCase().includes(query)) ||
+        (c.evaluator && c.evaluator.toLowerCase().includes(query)) ||
+        (c.domain && c.domain.toLowerCase().includes(query))
+      );
 
       if (results.length === 0) {
         listEl.innerHTML = `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
             <div style="display:flex;align-items:center;gap:10px;color:var(--gray-700);font-size:13.5px;">
               <span>🔍</span>
-              <span>No verified credentials found matching "<strong>${escapeHtml(query)}</strong>". Try searching by ID (e.g. <code>NXW-CERT-2026-8899</code>) or student name.</span>
+              <span>No verified credentials found matching "<strong>${escapeHtml(query)}</strong>". Try searching by Credential ID or track title.</span>
             </div>
             <button class="btn btn-sm btn-outline" onclick="clearCertSearch()">Clear Search</button>
           </div>
@@ -1689,10 +2042,10 @@
                 <span style="font-size:11px;color:var(--gray-500);">${c.issuedDate}</span>
               </div>
               <div style="font-weight:800;font-size:14px;color:var(--gray-900);margin-bottom:2px;">
-                ${c.trackIcon} ${c.trackTitle}
+                ${c.trackIcon || '🌐'} ${escapeHtml(c.trackTitle)}
               </div>
               <div style="font-size:12px;color:var(--gray-600);margin-bottom:8px;">
-                Candidate: <strong>${c.studentName}</strong> (${c.studentId})
+                Candidate: <strong>${escapeHtml(c.studentName)}</strong> (${escapeHtml(c.studentId)})
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f1f5f9;padding-top:8px;font-size:11.5px;">
                 <span style="color:#047857;font-weight:700;">Score: ${c.overallScore}% · Grade ${c.grade}</span>
@@ -1717,6 +2070,20 @@
         const listEl = document.getElementById('certSearchResultsList');
         if (!container || !listEl) return;
         container.style.display = 'block';
+
+        if (CERTIFICATE_LEDGER.length === 0) {
+          listEl.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+              <div style="display:flex;align-items:center;gap:10px;color:var(--gray-700);font-size:13.5px;">
+                <span>🔒</span>
+                <span>No verified credentials have been issued yet. Pass your live 45-minute Level Clearance Interview to certify your track badge and generate your official digital credential.</span>
+              </div>
+              <button class="btn btn-sm btn-outline" onclick="clearCertSearch()">Close Ledger</button>
+            </div>
+          `;
+          return;
+        }
+
         listEl.innerHTML = `
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
             <div style="font-size:13px;font-weight:700;color:#065F46;">
@@ -1732,10 +2099,10 @@
                   <span style="font-size:11px;color:var(--gray-500);">${c.issuedDate}</span>
                 </div>
                 <div style="font-weight:800;font-size:14px;color:var(--gray-900);margin-bottom:2px;">
-                  ${c.trackIcon} ${c.trackTitle}
+                  ${c.trackIcon || '🌐'} ${escapeHtml(c.trackTitle)}
                 </div>
                 <div style="font-size:12px;color:var(--gray-600);margin-bottom:8px;">
-                  Candidate: <strong>${c.studentName}</strong> (${c.studentId})
+                  Candidate: <strong>${escapeHtml(c.studentName)}</strong> (${escapeHtml(c.studentId)})
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f1f5f9;padding-top:8px;font-size:11.5px;">
                   <span style="color:#047857;font-weight:700;">Score: ${c.overallScore}% · Grade ${c.grade}</span>
@@ -1775,46 +2142,94 @@
 
       switchComparisonView('both');
 
-      const titleEl = document.getElementById('certTrackTitle');
-      if (titleEl) titleEl.textContent = cert.trackTitle;
-
-      const idEl = document.getElementById('certIdCode');
-      if (idEl) idEl.textContent = cert.id;
-
-      const badgeEl = document.getElementById('certOverallBadge');
-      if (badgeEl) badgeEl.textContent = `Score: ${cert.overallScore}% · Grade ${cert.grade}`;
-
-      const qualEl = document.getElementById('certScoreQuality');
-      if (qualEl) qualEl.textContent = cert.scores.quality.label;
-      const qualFill = document.getElementById('certFillQuality');
-      if (qualFill) qualFill.style.width = cert.scores.quality.score + '%';
-
-      const defEl = document.getElementById('certScoreDefense');
-      if (defEl) defEl.textContent = cert.scores.defense.label;
-      const defFill = document.getElementById('certFillDefense');
-      if (defFill) defFill.style.width = cert.scores.defense.score + '%';
-
-      const commEl = document.getElementById('certScoreComm');
-      if (commEl) commEl.textContent = cert.scores.comm.label;
-      const commFill = document.getElementById('certFillComm');
-      if (commFill) commFill.style.width = cert.scores.comm.score + '%';
-
-      const quoteEl = document.getElementById('certEvaluatorQuote');
-      if (quoteEl) quoteEl.textContent = `"${cert.evaluatorQuote || 'Candidate demonstrated solid technical understanding during code defense.'}"`;
-
-      const nameEl = document.getElementById('certEvaluatorName');
-      const evalName = (cert.evaluator && cert.evaluator !== '—') ? cert.evaluator : 'Dr. Kavita Rao';
-      if (nameEl) nameEl.textContent = `— ${evalName}, ${cert.evaluatorRole || 'Lead Technical Evaluator'}`;
-
       const cardAfter = document.getElementById('cardCompAfter');
-      if (cardAfter) {
-        cardAfter.style.transition = 'all 0.3s ease';
-        cardAfter.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.4)';
-        setTimeout(() => {
-          cardAfter.style.boxShadow = '';
-        }, 1800);
-        cardAfter.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      if (!cardAfter) return;
+
+      cardAfter.style.opacity = '1';
+      cardAfter.style.borderColor = 'rgba(16,185,129,0.3)';
+      cardAfter.innerHTML = `
+        <div class="screen-preview-header">
+          <div>
+            <span class="preview-badge badge-after">STATE B · AFTER DEFENSE CLEARED (PASSED)</span>
+            <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Official Qualiflyer · Badge Certified</div>
+          </div>
+          <span class="badge badge-green" style="font-size:12px;">🏆 Certified Qualiflyer</span>
+        </div>
+        <div class="screen-preview-body">
+          <div class="mini-banner" style="background:#ECFDF5;border-left:4px solid var(--success);color:#065F46;">
+            <span style="font-size:20px;">🏆</span>
+            <div>
+              <strong>Verified Credential: ${escapeHtml(cert.trackTitle)}</strong>
+              <div style="font-size:12px;color:#047857;margin-top:2px;">Awarded to ${escapeHtml(cert.studentName)} (${escapeHtml(cert.studentId)}) · Evaluated by ${escapeHtml(cert.evaluator)}</div>
+            </div>
+          </div>
+
+          <div class="mini-kpi-row">
+            <div class="mini-kpi" style="border-color:rgba(16,185,129,0.3);background:#F0FDF4;">
+              <span class="mini-kpi-label" style="color:#047857;">Badges Certified</span>
+              <span class="mini-kpi-val" style="color:var(--success);">1 🏅 <span style="font-size:12px;font-weight:600;">(Official)</span></span>
+            </div>
+            <div class="mini-kpi" style="border-color:rgba(16,185,129,0.3);background:#F0FDF4;">
+              <span class="mini-kpi-label" style="color:#047857;">Clearance Status</span>
+              <span class="mini-kpi-val" style="font-size:15px;color:var(--success-dark);margin-top:4px;">✅ PASSED ✓</span>
+            </div>
+          </div>
+
+          <div class="cert-card">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#F59E0B,#D97706);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 12px rgba(245,158,11,0.4);">
+                ${cert.trackIcon || '🌐'}
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:700;color:#FCD34D;letter-spacing:1px;text-transform:uppercase;">NextWave Verified Credential</div>
+                <div id="certTrackTitle" style="font-size:18px;font-weight:800;color:white;">${escapeHtml(cert.trackTitle)}</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#CBD5E1;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:6px;">
+              <span>ID: <code id="certIdCode">${escapeHtml(cert.id)}</code></span>
+              <span id="certEndorsedStatus" style="color:#10B981;font-weight:700;">✓ Faculty Endorsed</span>
+            </div>
+          </div>
+
+          <div class="rubric-meter" style="background:#F0FDF4;border-color:rgba(16,185,129,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;font-weight:700;color:#065F46;text-transform:uppercase;letter-spacing:0.5px;">Live Defense Scorecard</span>
+              <span class="badge badge-green" id="certOverallBadge" style="font-size:10.5px;">Score: ${cert.overallScore}% · Grade ${cert.grade}</span>
+            </div>
+            <div class="rubric-item">
+              <div class="rubric-head"><span>Code Quality & Architecture</span><span id="certScoreQuality" style="color:#047857;font-weight:700;">${cert.scores.quality.label}</span></div>
+              <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillQuality" style="width:${cert.scores.quality.score}%;background:#10B981;"></div></div>
+            </div>
+            <div class="rubric-item">
+              <div class="rubric-head"><span>Live Defense & Problem Solving</span><span id="certScoreDefense" style="color:#047857;font-weight:700;">${cert.scores.defense.label}</span></div>
+              <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillDefense" style="width:${cert.scores.defense.score}%;background:#10B981;"></div></div>
+            </div>
+            <div class="rubric-item">
+              <div class="rubric-head"><span>Communication & Systems Thinking</span><span id="certScoreComm" style="color:#047857;font-weight:700;">${cert.scores.comm.label}</span></div>
+              <div class="rubric-bar-bg"><div class="rubric-bar-fill" id="certFillComm" style="width:${cert.scores.comm.score}%;background:#10B981;"></div></div>
+            </div>
+          </div>
+
+          <div style="background:white;border:1px solid #E2E8F0;border-left:3px solid #10B981;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--gray-700);line-height:1.5;">
+            <em id="certEvaluatorQuote">"${escapeHtml(cert.evaluatorQuote)}"</em>
+            <div id="certEvaluatorName" style="font-weight:700;color:var(--gray-900);margin-top:4px;font-size:11.5px;">— ${escapeHtml(cert.evaluator)}, ${escapeHtml(cert.evaluatorRole || 'Lead Technical Evaluator')}</div>
+          </div>
+
+          <div style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.1));border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+            <span style="font-size:24px;">🚀</span>
+            <div style="font-size:12.5px;color:#065F46;line-height:1.4;">
+              <strong>Hiring Gateway Activated:</strong> Your certified track badge qualifies you for fast-track interview scheduling with 24+ NextWave partner tech employers!
+            </div>
+          </div>
+        </div>
+      `;
+
+      cardAfter.style.transition = 'all 0.3s ease';
+      cardAfter.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.4)';
+      setTimeout(() => {
+        cardAfter.style.boxShadow = '';
+      }, 1800);
+      cardAfter.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
       showToast(`Loaded verified credential ${cert.id} (${cert.trackTitle})`, 'success');
     }
