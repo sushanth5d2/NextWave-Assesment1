@@ -525,6 +525,7 @@
       }
 
       closeOutcomeModal();
+      localStorage.removeItem('nextwave_pipeline_db');
       showToast(`${currentEvaluation.studentName} marked as ${currentEvaluation.outcome.toUpperCase()}!`, currentEvaluation.outcome === 'Passed' ? 'success' : 'info');
       await fetchPipelineFromPg();
       await renderSchedule();
@@ -1085,7 +1086,7 @@
           <td>${getStatusBadge(s.status)}</td>
           <td style="max-width:320px;font-size:13px;color:var(--gray-600);">${s.notes || '—'}</td>
           <td>
-            <button class="btn btn-sm btn-outline" onclick="openOutcomeModal('${s.name}', '${s.status === 'Passed' ? 'Retake' : 'Passed'}')">Edit Decision</button>
+            <button class="btn btn-sm btn-outline" onclick="openOutcomeModal('${(s.name || '').replace(/'/g, "\\'")}', '${s.status === 'Passed' ? 'Retake' : 'Passed'}', '${(s.track || '').replace(/'/g, "\\'")}', '${s.bookingId || s.id || ''}')">Edit Decision</button>
           </td>
         </tr>
       `).join('');

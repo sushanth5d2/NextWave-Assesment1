@@ -942,7 +942,19 @@
       });
 
       const enrollments = studentDashboardData.enrollments || [];
-      const badges = studentDashboardData.badges || [];
+      // Deduplicate badges strictly by track so duplicates are impossible
+      const rawBadges = studentDashboardData.badges || [];
+      const seenBadgeTracks = new Set();
+      const badges = [];
+      rawBadges.forEach(b => {
+        const k = (b.track_id || b.badge_name || '').toLowerCase();
+        if (!seenBadgeTracks.has(k)) {
+          seenBadgeTracks.add(k);
+          badges.push(b);
+        }
+      });
+      studentDashboardData.badges = badges;
+
       const allBookings = studentDashboardData.bookings || (studentDashboardData.booking ? [studentDashboardData.booking] : []);
       const numEnrolled = enrollments.length;
 
@@ -1154,10 +1166,19 @@
       const flaggedTrackIds = flaggedBookings.map(b => (b.track_id || '').toLowerCase());
       const flaggedTrackNames = flaggedBookings.map(b => (b.track_name || '').toLowerCase());
 
-      const activeBadges = (badges || []).filter(b => 
+      const rawActiveBadges = (badges || []).filter(b => 
         !flaggedTrackIds.includes((b.track_id || '').toLowerCase()) &&
         !flaggedTrackNames.includes((b.badge_name || '').toLowerCase())
       );
+      const seenActiveTracks = new Set();
+      const activeBadges = [];
+      rawActiveBadges.forEach(b => {
+        const k = (b.track_id || b.badge_name || '').toLowerCase();
+        if (!seenActiveTracks.has(k)) {
+          seenActiveTracks.add(k);
+          activeBadges.push(b);
+        }
+      });
 
       const passedBookings = (allBookings || []).filter(b => 
         (b.status === 'Passed' || b.status === 'Pass') &&
@@ -1506,7 +1527,19 @@
       if (!modal || !titleEl || !bodyEl) return;
 
       const enrollments = studentDashboardData.enrollments || [];
-      const badges = studentDashboardData.badges || [];
+      // Deduplicate badges strictly by track so duplicates are impossible
+      const rawBadges = studentDashboardData.badges || [];
+      const seenBadgeTracks = new Set();
+      const badges = [];
+      rawBadges.forEach(b => {
+        const k = (b.track_id || b.badge_name || '').toLowerCase();
+        if (!seenBadgeTracks.has(k)) {
+          seenBadgeTracks.add(k);
+          badges.push(b);
+        }
+      });
+      studentDashboardData.badges = badges;
+
       const allBookings = studentDashboardData.bookings || (studentDashboardData.booking ? [studentDashboardData.booking] : []);
       const booking = studentDashboardData.booking || null;
       const status = booking ? booking.status : null;
@@ -1833,21 +1866,32 @@
     function syncCertificateLedger(badges, allBookings, enrollments) {
       CERTIFICATE_LEDGER = [];
       const activeUser = (typeof getUser === 'function' ? getUser() : null) || (typeof user !== 'undefined' ? user : {});
+      const userEmail = (activeUser.email || '').toLowerCase().trim();
+      if (!userEmail) {
+        renderCertFilterChips();
+        return;
+      }
+
       const flaggedBookings = (allBookings || []).filter(b => b.status === 'Flagged');
       const flaggedTrackIds = flaggedBookings.map(b => (b.track_id || '').toLowerCase());
       const flaggedTrackNames = flaggedBookings.map(b => (b.track_name || '').toLowerCase());
 
       const passedBookings = (allBookings || []).filter(b => 
         (b.status === 'Passed' || b.status === 'Pass') && 
+        (b.student_email ? b.student_email.toLowerCase() === userEmail : true) &&
         !flaggedTrackIds.includes((b.track_id || '').toLowerCase()) &&
         !flaggedTrackNames.includes((b.track_name || '').toLowerCase())
       );
+
+      const seenTrackKeys = new Set();
 
       // Check current user's active awarded badges
       (badges || []).forEach(b => {
         const bTrackId = (b.track_id || '').toLowerCase();
         const bName = (b.badge_name || '').toLowerCase();
+        const trackKey = bTrackId || bName;
         if (flaggedTrackIds.includes(bTrackId) || flaggedTrackNames.includes(bName)) return;
+        if (seenTrackKeys.has(trackKey) || (bName && seenTrackKeys.has(bName))) return;
 
         const matchingBooking = passedBookings.find(pb => 
           (pb.track_id && pb.track_id.toLowerCase() === bTrackId) || 
@@ -1862,93 +1906,71 @@
         let evaluatorName = (matchingBooking && matchingBooking.interviewer_name && matchingBooking.interviewer_name !== '—') ? matchingBooking.interviewer_name : 'Dr. Kavita Rao';
         let feedback = (matchingBooking && matchingBooking.notes) ? matchingBooking.notes : 'Candidate demonstrated exceptional mastery and architectural rigor during the 45-minute code defense.';
 
-        const credId = b.credential_id || (matchingBooking && matchingBooking.credential_id) || ('NXW-CERT-2026-' + strHash((activeUser.email || '') + b.badge_name));
+        const credId = b.credential_id || (matchingBooking && matchingBooking.credential_id) || ('NXW-CERT-2026-' + strHash(userEmail + '_' + trackKey));
 
-        if (!CERTIFICATE_LEDGER.some(c => c.id === credId)) {
-          CERTIFICATE_LEDGER.push({
-            id: credId,
-            studentName: activeUser.name || 'Candidate',
-            studentEmail: activeUser.email || '',
-            studentId: activeUser.niatId || 'NIAT-ST',
-            trackTitle: b.badge_name || trackMeta.trackTitle || 'Full Stack Development',
-            trackIcon: b.badge_icon || trackMeta.trackIcon || '🌐',
-            domain: b.domain || trackMeta.domain || 'Engineering',
-            evaluator: evaluatorName,
-            evaluatorRole: 'Lead Technical Evaluator',
-            evaluatorQuote: feedback,
-            issuedDate: formatDisplayDate(b.awarded_at || (matchingBooking ? matchingBooking.interview_date : null), 'short') || 'Nov 14, 2026',
-            overallScore: 95,
-            grade: 'A+',
-            scores: {
-              quality: { score: 95, label: '95% (Exceptional)' },
-              defense: { score: 94, label: '94% (High Mastery)' },
-              comm: { score: 96, label: '96% (Distinction)' }
-            }
-          });
-        }
+        seenTrackKeys.add(trackKey);
+        if (bName) seenTrackKeys.add(bName);
+        if (bTrackId) seenTrackKeys.add(bTrackId);
+
+        CERTIFICATE_LEDGER.push({
+          id: credId,
+          studentName: activeUser.name || 'Candidate',
+          studentEmail: userEmail,
+          studentId: activeUser.niatId || 'NIAT-ST',
+          trackTitle: b.badge_name || trackMeta.trackTitle || 'Full Stack Development',
+          trackIcon: b.badge_icon || trackMeta.trackIcon || '🌐',
+          domain: b.domain || trackMeta.domain || 'Engineering',
+          evaluator: evaluatorName,
+          evaluatorRole: 'Lead Technical Evaluator',
+          evaluatorQuote: feedback,
+          issuedDate: formatDisplayDate(b.awarded_at || (matchingBooking ? matchingBooking.interview_date : null), 'short') || 'Nov 14, 2026',
+          overallScore: 95,
+          grade: 'A+',
+          scores: {
+            quality: { score: 95, label: '95% (Exceptional)' },
+            defense: { score: 94, label: '94% (High Mastery)' },
+            comm: { score: 96, label: '96% (Distinction)' }
+          }
+        });
       });
 
       // Also check any passed bookings that may not yet have a student_badges row
       passedBookings.forEach(pb => {
         const pbTrack = pb.track_name || 'Technical Track';
-        const credId = pb.credential_id || ('NXW-CERT-2026-' + strHash((activeUser.email || pb.student_email || '') + pbTrack));
-        if (!CERTIFICATE_LEDGER.some(c => c.id === credId)) {
-          CERTIFICATE_LEDGER.push({
-            id: credId,
-            studentName: activeUser.name || pb.student_name || 'Candidate',
-            studentEmail: activeUser.email || pb.student_email || '',
-            studentId: activeUser.niatId || pb.student_niat_id || 'NIAT-ST',
-            trackTitle: pbTrack,
-            trackIcon: '🌐',
-            domain: pb.domain || 'Engineering',
-            evaluator: (pb.interviewer_name && pb.interviewer_name !== '—') ? pb.interviewer_name : 'Dr. Kavita Rao',
-            evaluatorRole: 'Lead Technical Evaluator',
-            evaluatorQuote: pb.notes || 'Candidate demonstrated deep comprehension and live code defense problem-solving.',
-            issuedDate: formatDisplayDate(pb.interview_date, 'short') || 'Nov 14, 2026',
-            overallScore: 94,
-            grade: 'A+',
-            scores: {
-              quality: { score: 94, label: '94% (Exceptional)' },
-              defense: { score: 93, label: '93% (High Mastery)' },
-              comm: { score: 95, label: '95% (Distinction)' }
-            }
-          });
-        }
-      });
+        const pbTrackId = (pb.track_id || '').toLowerCase();
+        const pbTrackLower = pbTrack.toLowerCase();
+        const trackKey = pbTrackId || pbTrackLower;
 
-      // Also include any verified graduates from pipeline
-      try {
-        const pipeline = getPipeline();
-        pipeline.forEach(p => {
-          if ((p.status === 'Passed' || p.status === 'Pass') && p.status !== 'Flagged') {
-            const pEmail = (p.email || p.student_email || '').toLowerCase();
-            const pTrack = p.track || p.track_name || 'Engineering Track';
-            const credId = p.credential_id || ('NXW-CERT-2026-' + strHash(pEmail + pTrack));
-            if (!CERTIFICATE_LEDGER.some(c => c.id === credId)) {
-              CERTIFICATE_LEDGER.push({
-                id: credId,
-                studentName: p.name || p.student_name || 'Certified Graduate',
-                studentEmail: pEmail,
-                studentId: p.niat_id || p.student_niat_id || 'NIAT-ST',
-                trackTitle: pTrack,
-                trackIcon: '🏅',
-                domain: p.domain || 'Engineering',
-                evaluator: (p.interviewer_name && p.interviewer_name !== '—') ? p.interviewer_name : 'Lead Technical Evaluator',
-                evaluatorRole: 'Lead Technical Evaluator',
-                evaluatorQuote: p.notes || 'Successfully completed live code defense and demonstrated high engineering proficiency.',
-                issuedDate: formatDisplayDate(p.interview_date || p.date, 'short') || 'Nov 14, 2026',
-                overallScore: 94,
-                grade: 'A+',
-                scores: {
-                  quality: { score: 94, label: '94% (Exceptional)' },
-                  defense: { score: 92, label: '92% (High Mastery)' },
-                  comm: { score: 96, label: '96% (Distinction)' }
-                }
-              });
-            }
+        if (seenTrackKeys.has(trackKey) || seenTrackKeys.has(pbTrackLower)) return;
+
+        const credId = pb.credential_id || ('NXW-CERT-2026-' + strHash(userEmail + '_' + trackKey));
+        seenTrackKeys.add(trackKey);
+        seenTrackKeys.add(pbTrackLower);
+        if (pbTrackId) seenTrackKeys.add(pbTrackId);
+
+        CERTIFICATE_LEDGER.push({
+          id: credId,
+          studentName: activeUser.name || pb.student_name || 'Candidate',
+          studentEmail: userEmail,
+          studentId: activeUser.niatId || pb.student_niat_id || 'NIAT-ST',
+          trackTitle: pbTrack,
+          trackIcon: '🌐',
+          domain: pb.domain || 'Engineering',
+          evaluator: (pb.interviewer_name && pb.interviewer_name !== '—') ? pb.interviewer_name : 'Dr. Kavita Rao',
+          evaluatorRole: 'Lead Technical Evaluator',
+          evaluatorQuote: pb.notes || 'Candidate demonstrated deep comprehension and live code defense problem-solving.',
+          issuedDate: formatDisplayDate(pb.interview_date, 'short') || 'Nov 14, 2026',
+          overallScore: 94,
+          grade: 'A+',
+          scores: {
+            quality: { score: 94, label: '94% (Exceptional)' },
+            defense: { score: 93, label: '93% (High Mastery)' },
+            comm: { score: 95, label: '95% (Distinction)' }
           }
         });
-      } catch (err) {}
+      });
+
+      // STRICT ISOLATION: Never include other candidates' certificates in a candidate's personal portal
 
       renderCertFilterChips();
     }

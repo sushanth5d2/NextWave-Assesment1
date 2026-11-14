@@ -14,11 +14,49 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
+// Stable Deterministic Hash for Badge & Credential Identifiers
+function strHash(str) {
+  if (!str) return '1001';
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString().slice(-4).padStart(4, '0');
+}
+
+// Database Badge Deduplication (Cleans any prior duplicate badge rows across PostgreSQL)
+async function deduplicateBadgesDb() {
+  try {
+    const res = await db.query('SELECT id, student_email, track_id FROM student_badges ORDER BY awarded_at ASC');
+    const seen = new Set();
+    const toDelete = [];
+    for (const row of res.rows) {
+      const key = `${(row.student_email || '').toLowerCase()}_${(row.track_id || '').toLowerCase()}`;
+      if (seen.has(key)) {
+        toDelete.push(row.id);
+      } else {
+        seen.add(key);
+      }
+    }
+    for (const delId of toDelete) {
+      await db.query('DELETE FROM student_badges WHERE id = $1', [delId]);
+    }
+    if (toDelete.length > 0) {
+      console.log(`🧹 Cleaned up ${toDelete.length} duplicate badge records from PostgreSQL database.`);
+    }
+  } catch (err) {
+    console.warn('Could not run badge deduplication cleanup:', err.message);
+  }
+}
+
 // Database Warmup Middleware (Guarantees tables and seed data exist before ANY API route runs on Vercel)
 let initPromise = null;
 function ensureDbInit() {
   if (!initPromise) {
-    initPromise = db.initDb().catch(err => {
+    initPromise = db.initDb().then(async () => {
+      await deduplicateBadgesDb();
+    }).catch(err => {
       console.error('Failed to initialize PostgreSQL database:', err);
       initPromise = null; // Reset so subsequent requests can retry
       throw err;
@@ -749,8 +787,8 @@ app.post('/api/evaluations', async (req, res) => {
     interviewerEmail, interviewerName, decision, scoreTech, scoreComm, scoreProb, feedbackNotes
   } = req.body;
 
-  if (!decision || !studentEmail) {
-    return res.status(400).json({ success: false, message: 'Decision and student email required' });
+  if (!decision) {
+    return res.status(400).json({ success: false, message: 'Decision required' });
   }
 
   try {
@@ -765,14 +803,48 @@ app.post('/api/evaluations', async (req, res) => {
                                 (trackName && trackName.includes('Cloud')) ? 'Prof. Rajesh Nair' : 'Dr. Kavita Rao';
     }
 
-    // 2. Insert evaluation record
+    // 2. Resolve student email and names if missing or default
+    let resolvedStudentEmail = studentEmail ? studentEmail.trim().toLowerCase() : '';
+    if (!resolvedStudentEmail && bookingId) {
+      const bRes = await db.query('SELECT student_email FROM interview_bookings WHERE id = $1', [bookingId]);
+      if (bRes.rows.length > 0) resolvedStudentEmail = (bRes.rows[0].student_email || '').toLowerCase();
+    }
+    if (!resolvedStudentEmail && studentName) {
+      const uRes = await db.query('SELECT email FROM users WHERE LOWER(name) = LOWER($1)', [studentName.trim()]);
+      if (uRes.rows.length > 0) resolvedStudentEmail = uRes.rows[0].email.toLowerCase();
+    }
+    if (!resolvedStudentEmail) {
+      resolvedStudentEmail = (studentName || 'candidate').toLowerCase().replace(/\s+/g, '') + '@niat.edu';
+    }
+
+    // Resolve track info
+    let resolvedTrackId = trackId;
+    let resolvedTrackName = trackName;
+    if (bookingId && (!resolvedTrackId || !resolvedTrackName)) {
+      const bRes = await db.query('SELECT track_id, track_name FROM interview_bookings WHERE id = $1', [bookingId]);
+      if (bRes.rows.length > 0) {
+        if (!resolvedTrackId) resolvedTrackId = bRes.rows[0].track_id;
+        if (!resolvedTrackName) resolvedTrackName = bRes.rows[0].track_name;
+      }
+    }
+    if (resolvedTrackName && (!resolvedTrackId || !resolvedTrackId.startsWith('track-'))) {
+      const tRes = await db.query('SELECT id, title FROM track_categories WHERE LOWER(title) = LOWER($1)', [resolvedTrackName.trim()]);
+      if (tRes.rows.length > 0) {
+        resolvedTrackId = tRes.rows[0].id;
+        resolvedTrackName = tRes.rows[0].title;
+      }
+    }
+    if (!resolvedTrackId) resolvedTrackId = 'track-fs';
+    if (!resolvedTrackName) resolvedTrackName = 'Full Stack Development';
+
+    // 3. Insert evaluation record
     const evalId = 'eval-' + Date.now();
     await db.query(`
       INSERT INTO interview_evaluations (id, booking_id, interviewer_email, decision, score_technical, score_communication, score_problem_solving, feedback_notes)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [evalId, bookingId || 'b-default', interviewerEmail || '', decision, scoreTech || 4, scoreComm || 4, scoreProb || 4, feedbackNotes || '']);
 
-    // 3. Map decision to booking status
+    // 4. Map decision to booking status
     const statusMap = {
       'PASS': 'Passed',
       'FAIL': 'Failed',
@@ -781,21 +853,40 @@ app.post('/api/evaluations', async (req, res) => {
     const finalStatus = statusMap[decision] || 'Passed';
     const resolvedInterviewerEmail = interviewerEmail || 'kavita@niat.edu';
 
+    // Update booking by id if present
+    if (bookingId) {
+      await db.query(`
+        UPDATE interview_bookings
+        SET status = $1, notes = $2,
+            interviewer_name = $3,
+            interviewer_email = $4
+        WHERE id = $5
+      `, [finalStatus, feedbackNotes || '', resolvedInterviewerName, resolvedInterviewerEmail, bookingId]);
+    }
+    // Also update any matching candidate booking for this track
     await db.query(`
       UPDATE interview_bookings
       SET status = $1, notes = $2,
           interviewer_name = $3,
           interviewer_email = $4
-      WHERE id = $5 OR (LOWER(student_email) = LOWER($6) AND (track_id = $7 OR track_name = $8))
-    `, [finalStatus, feedbackNotes || '', resolvedInterviewerName, resolvedInterviewerEmail, bookingId, studentEmail.toLowerCase(), trackId || '', trackName || '']);
+      WHERE LOWER(student_email) = LOWER($5) AND (track_id = $6 OR LOWER(track_name) = LOWER($7))
+    `, [finalStatus, feedbackNotes || '', resolvedInterviewerName, resolvedInterviewerEmail, resolvedStudentEmail, resolvedTrackId, resolvedTrackName]);
 
-    // 4. If passed, grant Track Badge in student_badges table
+    // 5. CRITICAL FIX: MANAGE BADGES (REVOKE/DELETE ON FAIL/RETAKE, UPSERT/DEDUPLICATE ON PASS)
+    // Unconditionally purge any active/revoked badges for this student and this track to prevent duplicates
+    await db.query(`
+      DELETE FROM student_badges
+      WHERE LOWER(student_email) = LOWER($1)
+        AND (track_id = $2 OR track_id = $3 OR LOWER(track_id) = LOWER($4))
+    `, [resolvedStudentEmail, resolvedTrackId, trackId || resolvedTrackId, resolvedTrackName]);
+
+    // If decision === 'PASS', grant EXACTLY ONE active badge with deterministic ID
     if (decision === 'PASS') {
-      const badgeId = 'bdg-' + Date.now();
+      const stableBadgeId = 'bdg-' + strHash(resolvedStudentEmail + '_' + resolvedTrackId);
       await db.query(`
         INSERT INTO student_badges (id, student_email, track_id, badge_tier, status)
         VALUES ($1, $2, $3, 'Certified Badge', 'ACTIVE')
-      `, [badgeId, studentEmail.toLowerCase(), trackId || 'track-fs']);
+      `, [stableBadgeId, resolvedStudentEmail, resolvedTrackId]);
     }
 
     res.json({ success: true, message: `Interview outcome recorded as ${finalStatus} by ${resolvedInterviewerName}.` });
@@ -821,14 +912,20 @@ app.get('/api/student/dashboard/:email', async (req, res) => {
       FROM student_badges sb
       LEFT JOIN track_categories tc ON sb.track_id = tc.id
       WHERE LOWER(sb.student_email) = $1 AND sb.status = 'ACTIVE'
+      ORDER BY sb.awarded_at DESC
     `, [email]);
 
-    badges.rows.forEach(b => {
-      if (!b.credential_id) {
-        const numPart = b.id ? b.id.replace(/\D/g, '').slice(-4) : '';
-        b.credential_id = 'NXW-CERT-2026-' + (numPart && numPart.length >= 2 ? numPart.padStart(4, '0') : '8899');
+    // Strict deduplication by track: at most 1 certificate badge per track
+    const uniqueBadgesMap = new Map();
+    for (const b of badges.rows) {
+      const trackKey = (b.track_id || b.badge_name || '').toLowerCase();
+      if (!uniqueBadgesMap.has(trackKey)) {
+        const numHash = strHash(email + '_' + trackKey);
+        b.credential_id = 'NXW-CERT-2026-' + numHash;
+        uniqueBadgesMap.set(trackKey, b);
       }
-    });
+    }
+    const cleanBadges = Array.from(uniqueBadgesMap.values());
 
     const enrollments = await db.query(`
       SELECT se.id, se.track_id as "trackId", se.skills_cleared_count as "skillsCleared", 
@@ -850,8 +947,11 @@ app.get('/api/student/dashboard/:email', async (req, res) => {
           intName = '—';
         }
       }
+      const trackKey = (b.track_id || b.track_name || '').toLowerCase();
+      const numHash = strHash(email + '_' + trackKey);
       return {
         ...b,
+        credential_id: 'NXW-CERT-2026-' + numHash,
         interviewer_name: intName,
         interview_date: normalizeDateString(b.interview_date),
         start_time: normalizeTimeString(b.start_time),
@@ -866,7 +966,7 @@ app.get('/api/student/dashboard/:email', async (req, res) => {
       success: true,
       booking: activeBooking,
       bookings: formattedBookings,
-      badges: badges.rows,
+      badges: cleanBadges,
       enrollments: enrollments.rows,
       enrolledTrackIds: enrollments.rows.map(r => r.trackId)
     });
