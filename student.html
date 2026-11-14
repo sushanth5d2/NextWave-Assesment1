@@ -1142,7 +1142,7 @@
       const cardAfter = document.getElementById('cardCompAfter');
       if (!cardBefore || !cardAfter) return;
 
-      const user = getCurrentUser() || {};
+      const activeUser = (typeof getUser === 'function' ? getUser() : null) || (typeof user !== 'undefined' ? user : {});
       const primaryTrack = (enrollments && enrollments[0]) || {
         trackTitle: 'Full Stack Development',
         domain: 'AI Product Mastery',
@@ -1832,7 +1832,7 @@
 
     function syncCertificateLedger(badges, allBookings, enrollments) {
       CERTIFICATE_LEDGER = [];
-      const user = getCurrentUser() || {};
+      const activeUser = (typeof getUser === 'function' ? getUser() : null) || (typeof user !== 'undefined' ? user : {});
       const flaggedBookings = (allBookings || []).filter(b => b.status === 'Flagged');
       const flaggedTrackIds = flaggedBookings.map(b => (b.track_id || '').toLowerCase());
       const flaggedTrackNames = flaggedBookings.map(b => (b.track_name || '').toLowerCase());
@@ -1862,14 +1862,14 @@
         let evaluatorName = (matchingBooking && matchingBooking.interviewer_name && matchingBooking.interviewer_name !== '—') ? matchingBooking.interviewer_name : 'Dr. Kavita Rao';
         let feedback = (matchingBooking && matchingBooking.notes) ? matchingBooking.notes : 'Candidate demonstrated exceptional mastery and architectural rigor during the 45-minute code defense.';
 
-        const credId = b.credential_id || (matchingBooking && matchingBooking.credential_id) || ('NXW-CERT-2026-' + strHash(user.email + b.badge_name));
+        const credId = b.credential_id || (matchingBooking && matchingBooking.credential_id) || ('NXW-CERT-2026-' + strHash((activeUser.email || '') + b.badge_name));
 
         if (!CERTIFICATE_LEDGER.some(c => c.id === credId)) {
           CERTIFICATE_LEDGER.push({
             id: credId,
-            studentName: user.name || 'Candidate',
-            studentEmail: user.email || '',
-            studentId: user.niatId || 'NIAT-ST',
+            studentName: activeUser.name || 'Candidate',
+            studentEmail: activeUser.email || '',
+            studentId: activeUser.niatId || 'NIAT-ST',
             trackTitle: b.badge_name || trackMeta.trackTitle || 'Full Stack Development',
             trackIcon: b.badge_icon || trackMeta.trackIcon || '🌐',
             domain: b.domain || trackMeta.domain || 'Engineering',
@@ -1891,13 +1891,13 @@
       // Also check any passed bookings that may not yet have a student_badges row
       passedBookings.forEach(pb => {
         const pbTrack = pb.track_name || 'Technical Track';
-        const credId = pb.credential_id || ('NXW-CERT-2026-' + strHash(user.email + pbTrack));
+        const credId = pb.credential_id || ('NXW-CERT-2026-' + strHash((activeUser.email || pb.student_email || '') + pbTrack));
         if (!CERTIFICATE_LEDGER.some(c => c.id === credId)) {
           CERTIFICATE_LEDGER.push({
             id: credId,
-            studentName: user.name || pb.student_name || 'Candidate',
-            studentEmail: user.email || pb.student_email || '',
-            studentId: user.niatId || pb.student_niat_id || 'NIAT-ST',
+            studentName: activeUser.name || pb.student_name || 'Candidate',
+            studentEmail: activeUser.email || pb.student_email || '',
+            studentId: activeUser.niatId || pb.student_niat_id || 'NIAT-ST',
             trackTitle: pbTrack,
             trackIcon: '🌐',
             domain: pb.domain || 'Engineering',

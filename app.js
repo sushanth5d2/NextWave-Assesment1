@@ -23,6 +23,10 @@ function getUser() {
   return u ? JSON.parse(u) : null;
 }
 
+function getCurrentUser() {
+  return getUser();
+}
+
 function setUser(user) {
   localStorage.setItem('nextwave_user', JSON.stringify(user));
 }
