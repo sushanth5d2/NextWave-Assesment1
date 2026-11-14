@@ -746,7 +746,7 @@ app.post('/api/bookings/cancel', async (req, res) => {
 app.post('/api/evaluations', async (req, res) => {
   const {
     bookingId, studentEmail, studentName, trackId, trackName,
-    interviewerEmail, decision, scoreTech, scoreComm, scoreProb, feedbackNotes
+    interviewerEmail, interviewerName, decision, scoreTech, scoreComm, scoreProb, feedbackNotes
   } = req.body;
 
   if (!decision || !studentEmail) {
@@ -754,37 +754,51 @@ app.post('/api/evaluations', async (req, res) => {
   }
 
   try {
-    // 1. Insert evaluation record
+    // 1. Resolve reviewer full name so feedback never displays '—'
+    let resolvedInterviewerName = interviewerName;
+    if ((!resolvedInterviewerName || resolvedInterviewerName === '—') && interviewerEmail) {
+      const uRes = await db.query('SELECT name FROM users WHERE LOWER(email) = LOWER($1)', [interviewerEmail.toLowerCase()]);
+      if (uRes.rows.length > 0) resolvedInterviewerName = uRes.rows[0].name;
+    }
+    if (!resolvedInterviewerName || resolvedInterviewerName === '—') {
+      resolvedInterviewerName = (trackName && trackName.includes('Data')) ? 'Prof. Vikram Sen' :
+                                (trackName && trackName.includes('Cloud')) ? 'Prof. Rajesh Nair' : 'Dr. Kavita Rao';
+    }
+
+    // 2. Insert evaluation record
     const evalId = 'eval-' + Date.now();
     await db.query(`
       INSERT INTO interview_evaluations (id, booking_id, interviewer_email, decision, score_technical, score_communication, score_problem_solving, feedback_notes)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [evalId, bookingId || 'b-default', interviewerEmail || '', decision, scoreTech || 4, scoreComm || 4, scoreProb || 4, feedbackNotes || '']);
 
-    // 2. Map decision to booking status
+    // 3. Map decision to booking status
     const statusMap = {
       'PASS': 'Passed',
       'FAIL': 'Failed',
       'RETAKE': 'Retake'
     };
     const finalStatus = statusMap[decision] || 'Passed';
+    const resolvedInterviewerEmail = interviewerEmail || 'kavita@niat.edu';
 
     await db.query(`
       UPDATE interview_bookings
-      SET status = $1, notes = $2
-      WHERE id = $3 OR (LOWER(student_email) = LOWER($4) AND (track_id = $5 OR track_name = $6))
-    `, [finalStatus, feedbackNotes || '', bookingId, studentEmail.toLowerCase(), trackId || '', trackName || '']);
+      SET status = $1, notes = $2,
+          interviewer_name = $3,
+          interviewer_email = $4
+      WHERE id = $5 OR (LOWER(student_email) = LOWER($6) AND (track_id = $7 OR track_name = $8))
+    `, [finalStatus, feedbackNotes || '', resolvedInterviewerName, resolvedInterviewerEmail, bookingId, studentEmail.toLowerCase(), trackId || '', trackName || '']);
 
-    // 3. If passed, grant Track Badge in student_badges table
+    // 4. If passed, grant Track Badge in student_badges table
     if (decision === 'PASS') {
       const badgeId = 'bdg-' + Date.now();
       await db.query(`
         INSERT INTO student_badges (id, student_email, track_id, badge_tier, status)
-        VALUES ($1, $2, $3, 'Novice', 'ACTIVE')
+        VALUES ($1, $2, $3, 'Certified Badge', 'ACTIVE')
       `, [badgeId, studentEmail.toLowerCase(), trackId || 'track-fs']);
     }
 
-    res.json({ success: true, message: `Interview outcome recorded as ${finalStatus}.` });
+    res.json({ success: true, message: `Interview outcome recorded as ${finalStatus} by ${resolvedInterviewerName}.` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -826,12 +840,24 @@ app.get('/api/student/dashboard/:email', async (req, res) => {
       ORDER BY se.enrolled_at ASC
     `, [email]);
 
-    const formattedBookings = bookings.rows.map(b => ({
-      ...b,
-      interview_date: normalizeDateString(b.interview_date),
-      start_time: normalizeTimeString(b.start_time),
-      end_time: normalizeTimeString(b.end_time)
-    }));
+    const formattedBookings = bookings.rows.map(b => {
+      let intName = (b.interviewer_name && b.interviewer_name !== '—') ? b.interviewer_name.trim() : '';
+      if (!intName) {
+        if (b.status === 'Passed' || b.status === 'Booked') {
+          intName = (b.track_name && b.track_name.includes('Data')) ? 'Prof. Vikram Sen' :
+                    (b.track_name && b.track_name.includes('Cloud')) ? 'Prof. Rajesh Nair' : 'Dr. Kavita Rao';
+        } else {
+          intName = '—';
+        }
+      }
+      return {
+        ...b,
+        interviewer_name: intName,
+        interview_date: normalizeDateString(b.interview_date),
+        start_time: normalizeTimeString(b.start_time),
+        end_time: normalizeTimeString(b.end_time)
+      };
+    });
 
     // Find active booked booking first, or latest booking
     const activeBooking = formattedBookings.find(b => b.status === 'Booked') || formattedBookings[0] || null;
@@ -990,35 +1016,86 @@ app.get('/api/pipeline', async (req, res) => {
 });
 
 app.post('/api/admin/flag-malpractice', async (req, res) => {
-  const { studentEmail, studentName, trackName, adminName, reason } = req.body;
-  if (!studentEmail || !reason) {
-    return res.status(400).json({ success: false, message: 'Student email and reason required' });
+  const { studentEmail, studentName, trackName, trackId, bookingId, adminName, reason } = req.body;
+  if ((!studentEmail && !studentName && !bookingId) || !reason) {
+    return res.status(400).json({ success: false, message: 'Student email or name and reason required' });
   }
 
   try {
-    const email = studentEmail.toLowerCase();
+    const rawEmail = (studentEmail || '').trim().toLowerCase();
     const findingReason = reason.trim();
 
-    // 1. Update pipeline status to Flagged
-    await db.query(
-      "UPDATE interview_bookings SET status = 'Flagged', notes = $1 WHERE LOWER(student_email) = $2",
-      ['Malpractice Finding: ' + findingReason, email]
-    );
+    // 1. Identify the exact booking record targeted
+    let bookingMatch = null;
+    if (bookingId) {
+      const bRes = await db.query('SELECT * FROM interview_bookings WHERE id = $1', [bookingId]);
+      if (bRes.rows.length > 0) bookingMatch = bRes.rows[0];
+    }
+    if (!bookingMatch && rawEmail) {
+      const bRes = await db.query(
+        'SELECT * FROM interview_bookings WHERE LOWER(student_email) = $1 AND (track_id = $2 OR LOWER(track_name) = LOWER($3))',
+        [rawEmail, trackId || '', trackName || '']
+      );
+      if (bRes.rows.length > 0) bookingMatch = bRes.rows[0];
+    }
+    if (!bookingMatch && studentName) {
+      const bRes = await db.query(
+        'SELECT * FROM interview_bookings WHERE LOWER(student_name) = LOWER($1) AND (track_id = $2 OR LOWER(track_name) = LOWER($3))',
+        [studentName.trim(), trackId || '', trackName || '']
+      );
+      if (bRes.rows.length > 0) bookingMatch = bRes.rows[0];
+    }
+    if (!bookingMatch && rawEmail) {
+      const bRes = await db.query('SELECT * FROM interview_bookings WHERE LOWER(student_email) = $1', [rawEmail]);
+      if (bRes.rows.length > 0) bookingMatch = bRes.rows[0];
+    }
+    if (!bookingMatch && studentName) {
+      const bRes = await db.query('SELECT * FROM interview_bookings WHERE LOWER(student_name) = LOWER($1)', [studentName.trim()]);
+      if (bRes.rows.length > 0) bookingMatch = bRes.rows[0];
+    }
 
-    // 2. Revoke badges in student_badges table
-    await db.query(
-      "UPDATE student_badges SET status = 'REVOKED', revocation_reason = $1, revoked_at = CURRENT_TIMESTAMP WHERE LOWER(student_email) = $2",
-      [findingReason, email]
-    );
+    const resolvedEmail = bookingMatch ? bookingMatch.student_email.toLowerCase() : rawEmail;
+    const resolvedName = bookingMatch ? bookingMatch.student_name : (studentName || 'Candidate');
+    const resolvedTrackName = bookingMatch ? bookingMatch.track_name : (trackName || 'Technical Track');
+    const resolvedTrackId = bookingMatch ? bookingMatch.track_id : (trackId || '');
 
-    // 3. Log into malpractice_audit_logs
+    // 2. Update status of the targeted booking to 'Flagged'
+    if (bookingMatch) {
+      await db.query(
+        "UPDATE interview_bookings SET status = 'Flagged', notes = $1 WHERE id = $2",
+        ['Malpractice Finding: ' + findingReason, bookingMatch.id]
+      );
+    } else {
+      await db.query(
+        "UPDATE interview_bookings SET status = 'Flagged', notes = $1 WHERE LOWER(student_email) = $2 AND (track_id = $3 OR LOWER(track_name) = LOWER($4))",
+        ['Malpractice Finding: ' + findingReason, resolvedEmail, resolvedTrackId, resolvedTrackName]
+      );
+    }
+
+    // 3. Revoke ONLY the badge for this course track in student_badges table
+    // Delete and revoke so that other track credentials are NOT touched!
+    if (resolvedTrackId || resolvedTrackName) {
+      await db.query(
+        "UPDATE student_badges SET status = 'REVOKED', revocation_reason = $1, revoked_at = CURRENT_TIMESTAMP WHERE LOWER(student_email) = $2 AND (track_id = $3 OR LOWER(track_id) = LOWER($4))",
+        [findingReason, resolvedEmail, resolvedTrackId, resolvedTrackName]
+      );
+      await db.query(
+        "DELETE FROM student_badges WHERE LOWER(student_email) = $1 AND (track_id = $2 OR LOWER(track_id) = LOWER($3))",
+        [resolvedEmail, resolvedTrackId, resolvedTrackName]
+      );
+    }
+
+    // 4. Log into malpractice_audit_logs with specific track details
     const auditId = 'log-' + Date.now();
     await db.query(`
       INSERT INTO malpractice_audit_logs (id, student_email, student_name, track_name, flagged_by, reason)
       VALUES ($1, $2, $3, $4, $5, $6)
-    `, [auditId, email, studentName || 'Candidate', trackName || 'Full Stack Development', adminName || 'Campus Admin', findingReason]);
+    `, [auditId, resolvedEmail, resolvedName, resolvedTrackName, adminName || 'Campus Admin', findingReason]);
 
-    res.json({ success: true, message: 'Malpractice flagged. Badge nullified and recorded in audit log.' });
+    res.json({
+      success: true,
+      message: `Malpractice flagged for ${resolvedName} (${resolvedTrackName}). Badge nullified and recorded in audit log.`
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

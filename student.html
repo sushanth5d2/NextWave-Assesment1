@@ -169,7 +169,7 @@
     <!-- ============ SECTION 3: BOOKING FLOW ============ -->
     <div class="section" id="sec-booking">
       <h1 style="font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;">Book Level Clearance Interview</h1>
-      <p style="color:var(--gray-500);margin-bottom:28px;">Select a 30-minute one-on-one session with a specialized faculty evaluator.</p>
+      <p style="color:var(--gray-500);margin-bottom:28px;">Select a 45-minute one-on-one session with a specialized faculty evaluator.</p>
 
       <!-- 1. LOCKED GATE STATE (When Student Has Not Cleared All Contest Skills) -->
       <div id="bookingLockedState" style="display:none;">
@@ -277,7 +277,7 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;">
                   <span style="color:var(--gray-500);font-size:14px;">Evaluation Format</span>
-                  <span style="font-weight:700;">Live 1-on-1 Code Defense (30 Mins)</span>
+                  <span style="font-weight:700;">Live 1-on-1 Code Defense (45 Mins)</span>
                 </div>
               </div>
 
@@ -526,7 +526,7 @@
 
                 <!-- Evaluator Quote -->
                 <div style="background:white;border:1px solid #E2E8F0;border-left:3px solid #10B981;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--gray-700);line-height:1.5;">
-                  <em id="certEvaluatorQuote">"Candidate demonstrated deep comprehension of full stack microservices and live SQL optimization during the 30-minute code defense."</em>
+                  <em id="certEvaluatorQuote">"Candidate demonstrated deep comprehension of full stack microservices and live SQL optimization during the 45-minute code defense."</em>
                   <div id="certEvaluatorName" style="font-weight:700;color:var(--gray-900);margin-top:4px;font-size:11.5px;">— Dr. Kavita Rao, Lead Technical Evaluator</div>
                 </div>
 
@@ -708,17 +708,25 @@
           b.track_id === e.trackId || (b.badge_name && b.badge_name.toLowerCase() === (e.trackTitle || '').toLowerCase()) || b.track_id === e.id
         );
 
-        const isThisTrackPassed = !!trackBadge || (trackBooking && (trackBooking.status === 'Passed' || trackBooking.status === 'Pass'));
-        const isThisTrackBooked = !isThisTrackPassed && trackBooking && (trackBooking.status === 'Booked' || trackBooking.status === 'Confirmed');
-        const isThisTrackRetake = !isThisTrackPassed && trackBooking && (trackBooking.status === 'Failed' || trackBooking.status === 'Retake');
-        const isEligible = !isThisTrackPassed && !isThisTrackBooked && (e.isEligible || (skillsCleared >= totalSkills));
+        const isThisTrackFlagged = trackBooking && trackBooking.status === 'Flagged';
+        const isThisTrackPassed = !isThisTrackFlagged && (!!trackBadge || (trackBooking && (trackBooking.status === 'Passed' || trackBooking.status === 'Pass')));
+        const isThisTrackBooked = !isThisTrackFlagged && !isThisTrackPassed && trackBooking && (trackBooking.status === 'Booked' || trackBooking.status === 'Confirmed');
+        const isThisTrackRetake = !isThisTrackFlagged && !isThisTrackPassed && trackBooking && (trackBooking.status === 'Failed' || trackBooking.status === 'Retake');
+        const isEligible = !isThisTrackFlagged && !isThisTrackPassed && !isThisTrackBooked && (e.isEligible || (skillsCleared >= totalSkills));
 
         // Find next skill name to clear
         const nextSkillIndex = skillsCleared;
         const nextSkillName = (e.skills && e.skills[nextSkillIndex]) ? e.skills[nextSkillIndex] : 'Next Competency';
 
         let actionHtml = '';
-        if (isThisTrackPassed) {
+        if (isThisTrackFlagged) {
+          actionHtml = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
+              <span style="font-size:12px;font-weight:700;color:var(--danger);">🚩 Integrity Review — Badge Flagged & Revoked</span>
+              <span class="badge badge-red" style="font-size:11px;">Flagged</span>
+            </div>
+          `;
+        } else if (isThisTrackPassed) {
           actionHtml = `
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-200);">
               <span style="font-size:12px;font-weight:700;color:var(--success-dark);">✓ Verified Badge Awarded</span>
@@ -1034,7 +1042,12 @@
       // STATE 3: PASSED
       if (status === 'Passed' || status === 'Pass') {
         const feedbackNotes = booking ? booking.notes : '';
-        const evaluatorName = (booking && booking.interviewer_name) ? booking.interviewer_name : 'Faculty Evaluator';
+        let rawIntName = (booking && booking.interviewer_name) ? booking.interviewer_name.trim() : '';
+        if (!rawIntName || rawIntName === '—') {
+          rawIntName = (primaryTrack && primaryTrack.domain && primaryTrack.domain.includes('Cloud')) ? 'Prof. Rajesh Nair' :
+                       (primaryTrack && primaryTrack.domain && primaryTrack.domain.includes('Data')) ? 'Prof. Vikram Sen' : 'Dr. Kavita Rao';
+        }
+        const evaluatorName = rawIntName;
         const trackTitle = (booking && booking.track_name) ? booking.track_name : (primaryTrack ? primaryTrack.trackTitle : 'Full Stack Development');
 
         document.getElementById('msg-passed').style.display = 'flex';
@@ -1124,12 +1137,30 @@
       }
 
       // STATE 6: FLAGGED
-      if (status === 'Flagged') {
+      const flaggedBookings = allBookings.filter(b => b.status === 'Flagged');
+      if (status === 'Flagged' || flaggedBookings.length > 0) {
         document.getElementById('msg-flagged').style.display = 'flex';
-        sv.textContent = '🚩 Badge Revoked';
-        sv.style.color = 'var(--danger)';
-        ss.textContent = 'Malpractice review finding';
-        return;
+        const flaggedNames = flaggedBookings.map(b => b.track_name || b.track || 'Track').join(', ');
+        const fMsg = document.getElementById('flaggedMsgBody');
+        if (fMsg) {
+          fMsg.innerHTML = `A review by the academic integrity board flagged your submission for <strong>${escapeHtml(flaggedNames || 'Enrolled Track')}</strong>. The awarded badge for this track has been nullified. Other enrolled tracks remain unaffected. Contact your campus coordinator.`;
+        }
+        
+        // Remove flagged tracks from CERTIFICATE_LEDGER
+        flaggedBookings.forEach(fb => {
+          const ft = (fb.track_name || fb.track || '').toLowerCase();
+          const idx = CERTIFICATE_LEDGER.findIndex(c => (c.studentEmail === user.email || c.studentName === user.name) && c.trackTitle.toLowerCase() === ft);
+          if (idx !== -1) {
+            CERTIFICATE_LEDGER.splice(idx, 1);
+          }
+        });
+
+        if (badges.length === 0 && bookedBookings.length === 0) {
+          sv.textContent = '🚩 Badge Revoked';
+          sv.style.color = 'var(--danger)';
+          ss.textContent = `${flaggedNames || 'Track'} flagged`;
+          return;
+        }
       }
 
       // STATE 7: ELIGIBLE TO BOOK (All skills cleared, Not Booked)
@@ -1253,10 +1284,11 @@
                   b.track_id === e.trackId || (b.badge_name && b.badge_name.toLowerCase() === (e.trackTitle || '').toLowerCase()) || b.track_id === e.id
                 );
 
-                const isThisTrackPassed = !!trackBadge || (trackBooking && (trackBooking.status === 'Passed' || trackBooking.status === 'Pass'));
-                const isThisTrackBooked = !isThisTrackPassed && trackBooking && (trackBooking.status === 'Booked' || trackBooking.status === 'Confirmed');
-                const isThisTrackRetake = !isThisTrackPassed && trackBooking && (trackBooking.status === 'Failed' || trackBooking.status === 'Retake');
-                const isEligible = !isThisTrackPassed && !isThisTrackBooked && !isThisTrackRetake && (e.isEligible || (cleared >= total));
+                const isThisTrackFlagged = trackBooking && trackBooking.status === 'Flagged';
+                const isThisTrackPassed = !isThisTrackFlagged && (!!trackBadge || (trackBooking && (trackBooking.status === 'Passed' || trackBooking.status === 'Pass')));
+                const isThisTrackBooked = !isThisTrackFlagged && !isThisTrackPassed && trackBooking && (trackBooking.status === 'Booked' || trackBooking.status === 'Confirmed');
+                const isThisTrackRetake = !isThisTrackFlagged && !isThisTrackPassed && trackBooking && (trackBooking.status === 'Failed' || trackBooking.status === 'Retake');
+                const isEligible = !isThisTrackFlagged && !isThisTrackPassed && !isThisTrackBooked && !isThisTrackRetake && (e.isEligible || (cleared >= total));
 
                 let badgeHtml = `<span class="badge badge-yellow">${cleared}/${total} Skills</span>`;
                 let btnHtml = `
@@ -1266,7 +1298,13 @@
                 `;
                 let progressDesc = `${pct}% (${cleared}/${total} Cleared)`;
 
-                if (isThisTrackPassed) {
+                if (isThisTrackFlagged) {
+                  badgeHtml = `<span class="badge badge-red">🚩 Flagged Malpractice</span>`;
+                  progressDesc = `Badge nullified · Academic integrity finding`;
+                  btnHtml = `
+                    <span style="font-size:12px;color:var(--danger);font-weight:700;">Integrity Hold</span>
+                  `;
+                } else if (isThisTrackPassed) {
                   badgeHtml = `<span class="badge badge-green">🏆 Badge Certified</span>`;
                   progressDesc = `100% (${total}/${total} Cleared) · Live Defense Passed ✓`;
                   btnHtml = `
@@ -1398,7 +1436,7 @@
               <div style="font-size:48px;margin-bottom:12px;">🏅</div>
               <h4 style="font-size:17px;font-weight:700;margin-bottom:8px;">0 Badges Certified (Clearance Required)</h4>
               <p style="color:var(--gray-600);font-size:13.5px;max-width:440px;margin:0 auto 20px;line-height:1.5;">
-                Track Badges are official credentials certified by NextWave faculty evaluators after you pass the live 30-minute level defense.
+                Track Badges are official credentials certified by NextWave faculty evaluators after you pass the live 45-minute level defense.
               </p>
               <div style="display:flex;justify-content:center;gap:12px;">
                 <button class="btn btn-primary" onclick="closeStudentDetailModal();showSection('booking');">
@@ -1528,7 +1566,7 @@
         domain: 'Full Stack',
         evaluator: 'Dr. Anand Varma',
         evaluatorRole: 'Lead Technical Evaluator & Systems Architect',
-        evaluatorQuote: 'Candidate demonstrated deep comprehension of full stack microservices, distributed caching, and live SQL optimization during the 30-minute code defense.',
+        evaluatorQuote: 'Candidate demonstrated deep comprehension of full stack microservices, distributed caching, and live SQL optimization during the 45-minute code defense.',
         issuedDate: 'Nov 12, 2026',
         overallScore: 94,
         grade: 'A+',
@@ -1762,10 +1800,11 @@
       if (commFill) commFill.style.width = cert.scores.comm.score + '%';
 
       const quoteEl = document.getElementById('certEvaluatorQuote');
-      if (quoteEl) quoteEl.textContent = `"${cert.evaluatorQuote}"`;
+      if (quoteEl) quoteEl.textContent = `"${cert.evaluatorQuote || 'Candidate demonstrated solid technical understanding during code defense.'}"`;
 
       const nameEl = document.getElementById('certEvaluatorName');
-      if (nameEl) nameEl.textContent = `— ${cert.evaluator}, ${cert.evaluatorRole}`;
+      const evalName = (cert.evaluator && cert.evaluator !== '—') ? cert.evaluator : 'Dr. Kavita Rao';
+      if (nameEl) nameEl.textContent = `— ${evalName}, ${cert.evaluatorRole || 'Lead Technical Evaluator'}`;
 
       const cardAfter = document.getElementById('cardCompAfter');
       if (cardAfter) {
@@ -1930,7 +1969,7 @@
                 <span>🎯</span> ${specDisplay}
               </div>
               <div style="font-size:11.5px;color:var(--gray-500);margin-top:8px;">
-                Live 1-on-1 Code Defense · 30 Mins
+                Live 1-on-1 Code Defense · 45 Mins
               </div>
             </div>
           </div>

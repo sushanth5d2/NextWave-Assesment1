@@ -89,7 +89,7 @@
             <h2 style="font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;">
               <span>🗓️</span> Interview Availability Manager
             </h2>
-            <p style="font-size:13.5px;color:var(--gray-500);margin-top:4px;">Publish, organize, and monitor 30-minute code defense windows for candidates in your track domain.</p>
+            <p style="font-size:13.5px;color:var(--gray-500);margin-top:4px;">Publish, organize, and monitor 45-minute code defense windows for candidates in your track domain.</p>
           </div>
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="openAddSlotModal()" style="padding:10px 18px;font-weight:700;box-shadow:0 4px 12px rgba(79,70,229,0.25);">
@@ -278,7 +278,7 @@
           <input type="date" class="form-input" id="newSlotDate" onchange="updateAvailableTimeOptions()" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Time Window (30-Minute Slot)</label>
+          <label class="form-label">Time Window (45-Minute Slot)</label>
           <select class="form-input" id="newSlotTime">
             <option value="10:00 AM - 10:45 AM">10:00 AM - 10:45 AM</option>
             <option value="11:00 AM - 11:45 AM">11:00 AM - 11:45 AM</option>
@@ -425,7 +425,7 @@
         if (isEval) {
           actionHtml = `
             <div style="display:flex;align-items:center;gap:8px;">
-              <button class="btn btn-sm btn-outline" onclick="openOutcomeModal('${item.name}', '${item.status === 'Passed' ? 'Retake' : 'Passed'}')" title="Edit Decision / Notes">
+              <button class="btn btn-sm btn-outline" onclick="openOutcomeModal('${item.name.replace(/'/g, "\\'")}', '${item.status === 'Passed' ? 'Retake' : 'Passed'}', '${(item.track || '').replace(/'/g, "\\'")}', '${item.bookingId || ''}')" title="Edit Decision / Notes">
                 ✏️ Edit Decision
               </button>
             </div>
@@ -433,9 +433,9 @@
         } else {
           actionHtml = `
             <div class="interview-actions">
-              <button class="btn btn-sm btn-success" onclick="openOutcomeModal('${item.name}', 'Passed')">✓ Pass</button>
-              <button class="btn btn-sm btn-danger" onclick="openOutcomeModal('${item.name}', 'Failed')">✗ Fail</button>
-              <button class="btn btn-sm btn-warning" onclick="openOutcomeModal('${item.name}', 'Retake')">↻ Retake</button>
+              <button class="btn btn-sm btn-success" onclick="openOutcomeModal('${item.name.replace(/'/g, "\\'")}', 'Passed', '${(item.track || '').replace(/'/g, "\\'")}', '${item.bookingId || ''}')">✓ Pass</button>
+              <button class="btn btn-sm btn-danger" onclick="openOutcomeModal('${item.name.replace(/'/g, "\\'")}', 'Failed', '${(item.track || '').replace(/'/g, "\\'")}', '${item.bookingId || ''}')">✗ Fail</button>
+              <button class="btn btn-sm btn-warning" onclick="openOutcomeModal('${item.name.replace(/'/g, "\\'")}', 'Retake', '${(item.track || '').replace(/'/g, "\\'")}', '${item.bookingId || ''}')">↻ Retake</button>
             </div>
           `;
         }
@@ -460,9 +460,9 @@
     }
 
     let currentEvaluation = {};
-    function openOutcomeModal(studentName, outcome) {
-      currentEvaluation = { studentName, outcome };
-      document.getElementById('outcomeStudentName').textContent = studentName;
+    function openOutcomeModal(studentName, outcome, trackName, bookingId) {
+      currentEvaluation = { studentName, outcome, trackName, bookingId };
+      document.getElementById('outcomeStudentName').textContent = `${studentName} — ${trackName || 'Technical Track'}`;
       
       const displayMap = {
         'Passed': { text: '✅ PASS — Award Track Badge & Leaderboard Credential', color: 'var(--success-dark)' },
@@ -492,8 +492,8 @@
       const comm = parseInt(document.getElementById('rubricComm').value, 10);
       const prob = parseInt(document.getElementById('rubricProb').value, 10);
 
-      const pipeline = getPipeline();
-      const item = pipeline.find(p => p.name === currentEvaluation.studentName) || {};
+      const pipeline = await fetchPipelineFromPg();
+      const item = pipeline.find(p => p.name === currentEvaluation.studentName && (!currentEvaluation.trackName || p.track === currentEvaluation.trackName)) || pipeline.find(p => p.name === currentEvaluation.studentName) || {};
 
       const decisionMap = {
         'Passed': 'PASS',
@@ -508,8 +508,11 @@
           body: JSON.stringify({
             studentName: currentEvaluation.studentName,
             studentEmail: item.email || (currentEvaluation.studentName.toLowerCase().replace(' ', '') + '@niat.edu'),
-            trackName: item.track || 'Full Stack Development',
+            trackName: item.track || currentEvaluation.trackName || 'Full Stack Development',
+            trackId: item.trackId,
+            bookingId: currentEvaluation.bookingId || item.bookingId,
             interviewerEmail: currentUser.email,
+            interviewerName: currentUser.name,
             decision: decisionMap[currentEvaluation.outcome] || 'PASS',
             scoreTech: tech,
             scoreComm: comm,
@@ -523,6 +526,7 @@
 
       closeOutcomeModal();
       showToast(`${currentEvaluation.studentName} marked as ${currentEvaluation.outcome.toUpperCase()}!`, currentEvaluation.outcome === 'Passed' ? 'success' : 'info');
+      await fetchPipelineFromPg();
       await renderSchedule();
       await renderHistory();
     }
@@ -834,7 +838,7 @@
                             <span style="font-size:16px;">⏰</span> ${timeStr}
                           </div>
                           <div style="font-size:12px;color:var(--gray-500);margin-top:2px;font-weight:500;">
-                            30-Minute Code Defense Window
+                            45-Minute Code Defense Window
                           </div>
                         </div>
                         <span class="badge badge-green" style="font-size:11.5px;padding:4px 9px;font-weight:700;">✓ Open</span>

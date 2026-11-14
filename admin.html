@@ -583,9 +583,9 @@
           <td>${s.interviewer !== '—' ? s.interviewer : '—'}</td>
           <td>${s.attempt || '1st'}</td>
           <td>
-            ${s.status === 'Passed' ? `<button class="btn btn-sm btn-outline" style="border-color:var(--danger);color:var(--danger);" onclick="openFlagModal('${s.name}')">🚩 Flag Malpractice</button>` : ''}
+            ${s.status === 'Passed' ? `<button class="btn btn-sm btn-outline" style="border-color:var(--danger);color:var(--danger);" onclick="openFlagModal('${s.name.replace(/'/g, "\\'")}', '${s.email || ''}', '${(s.track || '').replace(/'/g, "\\'")}', '${s.trackId || ''}', '${s.bookingId || ''}')">🚩 Flag Malpractice</button>` : ''}
             ${s.status === 'Not Booked' ? `<button class="btn btn-sm btn-outline" onclick="sendIndividualReminder('${s.name}')">📩 Remind</button>` : ''}
-            ${s.status === 'Flagged' ? `<span style="font-size:12px;color:var(--danger);font-weight:700;">Revoked</span>` : ''}
+            ${s.status === 'Flagged' ? `<span style="font-size:12px;color:var(--danger);font-weight:700;">Revoked / Flagged</span>` : ''}
             ${['Booked', 'Failed', 'Retake'].includes(s.status) ? `<button class="btn btn-sm btn-outline" onclick="adminOverrideOutcome('${s.name}')">⚙ Override</button>` : ''}
           </td>
         </tr>
@@ -975,9 +975,19 @@
     // 4. AUDIT LOG & MALPRACTICE
     // ==========================================
     let targetFlagStudent = '';
-    function openFlagModal(studentName) {
+    let targetFlagEmail = '';
+    let targetFlagTrack = '';
+    let targetFlagTrackId = '';
+    let targetFlagBookingId = '';
+
+    function openFlagModal(studentName, studentEmail, trackName, trackId, bookingId) {
       targetFlagStudent = studentName;
-      document.getElementById('flagStudentName').textContent = studentName;
+      targetFlagEmail = studentEmail || '';
+      targetFlagTrack = trackName || '';
+      targetFlagTrackId = trackId || '';
+      targetFlagBookingId = bookingId || '';
+
+      document.getElementById('flagStudentName').textContent = `${studentName} — ${trackName || 'Technical Track'}`;
       document.getElementById('flagReason').value = '';
       document.getElementById('flagModal').classList.add('active');
     }
@@ -994,7 +1004,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             studentName: targetFlagStudent,
-            studentEmail: targetFlagStudent.toLowerCase().replace(' ', '') + '@niat.edu',
+            studentEmail: targetFlagEmail,
+            trackName: targetFlagTrack,
+            trackId: targetFlagTrackId,
+            bookingId: targetFlagBookingId,
             adminName: adminUser.name,
             reason
           })
@@ -1004,7 +1017,7 @@
       }
 
       closeFlagModal();
-      showToast(`${targetFlagStudent}'s badge nullified and audit recorded.`, 'error');
+      showToast(`${targetFlagStudent}'s badge for ${targetFlagTrack} nullified and flagged.`, 'error');
       await renderAdminPipeline();
       await renderAuditLog();
     }
